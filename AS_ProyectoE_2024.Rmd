@@ -1,0 +1,73 @@
+---
+title: "AS_ProyectoE_2024"
+author: "Marcos"
+date: "2024-12-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(magick)
+library(wavelets)
+```
+
+```{r}
+# Definir una función para redimensionar y convertir a array
+procesar_imagen <- function(ruta_imagen, tamano) {
+  imagen <- image_read(ruta_imagen)
+  imagen_redimensionada <- image_scale(imagen, tamano)
+  array_imagen <- as.integer(image_data(imagen_redimensionada))
+  return(array_imagen)
+}
+
+# Aplicar la función a cada imagen
+arbol_01 <- procesar_imagen("./images/arbol_01.jpg", "900x675")
+arbol_03 <- procesar_imagen("./images/arbol_03.jpg", "900x675")
+perro_01 <- procesar_imagen("./images/perro_01.jpg", "900x675")
+flor_01 <- procesar_imagen("./images/flor_01.jpg", "900x675")
+flor_02 <- procesar_imagen("./images/flor_02.jpg", "900x675")
+flor_04_filtro <- procesar_imagen("./images/flor_04_filtro.jpg", "900x675")
+flor_05_filtro <- procesar_imagen("./images/flor_05_filtro.jpg", "900x675")
+peluche_01_filtro <- procesar_imagen("./images/peluche_01_filtro.jpg", "900x675")
+planta_01 <- procesar_imagen("./images/planta_01.jpg", "900x675")
+pinas_01 <- procesar_imagen("./images/piñas_01.jpg", "900x675")
+gato_01 <- procesar_imagen("./images/gato_01.jpg", "900x675")
+gato_02_filtro <- procesar_imagen("./images/gato_02_filtro.jpg", "900x675")
+
+
+# Extraer solo un canal RGB para aquellas imágenes con filtro blanco y negro 
+flor_04_filtro <- flor_04_filtro[, , 1]
+flor_05_filtro <- flor_05_filtro[, , 1]
+peluche_01_filtro <- peluche_01_filtro[, , 1]
+gato_02_filtro <- gato_02_filtro[, , 1]
+```
+
+```{r}
+# EJEMPLO DE COMO APLICAR WAVELETS A UNA IMAGEN RGB (ESTE EJEMPLO NO VALE PARA IMAGENES EN BLANCO Y NEGRO)
+# ES NECESARIO APLICAR LA DWT A CADA FILA DE LA MATRIZ DE CADA CANAL RGB
+
+
+# Función para aplicar wavelet a cada fila de una matriz de canales
+aplicar_wavelet_a_matriz <- function(matriz, filtro_wavelet = "haar") {
+  lapply(1:nrow(matriz), function(i) dwt(as.numeric(matriz[i, ]), filter = filtro_wavelet))
+}
+
+# Función para extraer canales y aplicar wavelet
+extraccion_wavelet <- function(array_imagen, filtro_wavelet = "haar") {
+  wavelet_R <- aplicar_wavelet_a_matriz(array_imagen[, , 1], filtro_wavelet)
+  wavelet_G <- aplicar_wavelet_a_matriz(array_imagen[, , 2], filtro_wavelet)
+  wavelet_B <- aplicar_wavelet_a_matriz(array_imagen[, , 3], filtro_wavelet)
+  
+  return(list(wavelet_R = wavelet_R, wavelet_G = wavelet_G, wavelet_B = wavelet_B))
+}
+
+# Aplicar la función a la imagen
+resultado_arbol_01 <- extraccion_wavelet(array_arbol_01)
+
+# Un ejemplo de los resultados
+print(resultado_arbol_01$wavelet_R[[1]])
+```
+
