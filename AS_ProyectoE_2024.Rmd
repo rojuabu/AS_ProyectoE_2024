@@ -51,12 +51,12 @@ gato_02_filtro <- gato_02_filtro[, , 1]
 
 
 # Función para aplicar wavelet a cada fila de una matriz de canales
-aplicar_wavelet_a_matriz <- function(matriz, filtro_wavelet = "haar") {
+aplicar_wavelet_a_matriz_por_filas <- function(matriz, filtro_wavelet = "haar") {
   lapply(1:nrow(matriz), function(i) dwt(as.numeric(matriz[i, ]), filter = filtro_wavelet))
 }
 
 # Función para extraer canales y aplicar wavelet
-extraccion_wavelet <- function(array_imagen, filtro_wavelet = "haar") {
+extraccion_wavelet_por_filas <- function(array_imagen, filtro_wavelet = "haar") {
   wavelet_R <- aplicar_wavelet_a_matriz(array_imagen[, , 1], filtro_wavelet)
   wavelet_G <- aplicar_wavelet_a_matriz(array_imagen[, , 2], filtro_wavelet)
   wavelet_B <- aplicar_wavelet_a_matriz(array_imagen[, , 3], filtro_wavelet)
@@ -65,7 +65,7 @@ extraccion_wavelet <- function(array_imagen, filtro_wavelet = "haar") {
 }
 
 # Aplicar la función a la imagen
-resultado_arbol_01 <- extraccion_wavelet(array_arbol_01)
+resultado_arbol_01 <- extraccion_wavelet(arbol_01)
 
 # Un ejemplo de los resultados
 print(resultado_arbol_01$wavelet_R[[1]])
