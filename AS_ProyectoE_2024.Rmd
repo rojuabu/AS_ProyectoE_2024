@@ -12,10 +12,19 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(magick)
 library(wavelets)
+library(waveslim)
+library(raster)
 ```
 
+# 1. Importación de imágenes y preacondicionamiento.
+
+### a. Importación de imágenes, transformación a matrices RGB y normalización de tamaños.
+
+En primer lugar se importan las imágenes a analizar para posteriormente hacer un redimensionamiento de estas a imágenes con dimensiones que son potencia de 2, ya que, la transformada Wavelet descompone las componentes en estas potencias.
+
+Por otro lado, las transformamos en arrays que contienen los distintos canales RGB y para aquellas fotos con filtro blanco y negro extraemos solo un canal, puesto que todos son iguales.
 ```{r}
-# Definir una función para redimensionar y convertir a array
+# Definir una función para redimensionar y convertir en array
 procesar_imagen <- function(ruta_imagen, tamano) {
   imagen <- image_read(ruta_imagen)
   imagen_redimensionada <- image_scale(imagen, tamano)
@@ -24,18 +33,18 @@ procesar_imagen <- function(ruta_imagen, tamano) {
 }
 
 # Aplicar la función a cada imagen
-arbol_01 <- procesar_imagen("./images/arbol_01.jpg", "900x675")
-arbol_03 <- procesar_imagen("./images/arbol_03.jpg", "900x675")
-perro_01 <- procesar_imagen("./images/perro_01.jpg", "900x675")
-flor_01 <- procesar_imagen("./images/flor_01.jpg", "900x675")
-flor_02 <- procesar_imagen("./images/flor_02.jpg", "900x675")
-flor_04_filtro <- procesar_imagen("./images/flor_04_filtro.jpg", "900x675")
-flor_05_filtro <- procesar_imagen("./images/flor_05_filtro.jpg", "900x675")
-peluche_01_filtro <- procesar_imagen("./images/peluche_01_filtro.jpg", "900x675")
-planta_01 <- procesar_imagen("./images/planta_01.jpg", "900x675")
-pinas_01 <- procesar_imagen("./images/piñas_01.jpg", "900x675")
-gato_01 <- procesar_imagen("./images/gato_01.jpg", "900x675")
-gato_02_filtro <- procesar_imagen("./images/gato_02_filtro.jpg", "900x675")
+arbol_01 <- procesar_imagen("./images/arbol_01.jpg", "1024x1024!")
+arbol_03 <- procesar_imagen("./images/arbol_03.jpg", "1024x1024!")
+perro_01 <- procesar_imagen("./images/perro_01.jpg", "1024x1024!")
+flor_01 <- procesar_imagen("./images/flor_01.jpg", "1024x1024!")
+flor_02 <- procesar_imagen("./images/flor_02.jpg", "1024x1024!")
+flor_04_filtro <- procesar_imagen("./images/flor_04_filtro.jpg", "1024x1024!")
+flor_05_filtro <- procesar_imagen("./images/flor_05_filtro.jpg", "1024x1024!")
+peluche_01_filtro <- procesar_imagen("./images/peluche_01_filtro.jpg", "1024x1024!")
+planta_01 <- procesar_imagen("./images/planta_01.jpg", "1024x1024!")
+pinas_01 <- procesar_imagen("./images/piñas_01.jpg", "1024x1024!")
+gato_01 <- procesar_imagen("./images/gato_01.jpg", "1024x1024!")
+gato_02_filtro <- procesar_imagen("./images/gato_02_filtro.jpg", "1024x1024!")
 
 
 # Extraer solo un canal RGB para aquellas imágenes con filtro blanco y negro 
@@ -46,28 +55,113 @@ gato_02_filtro <- gato_02_filtro[, , 1]
 ```
 
 ```{r}
-# EJEMPLO DE COMO APLICAR WAVELETS A UNA IMAGEN RGB (ESTE EJEMPLO NO VALE PARA IMAGENES EN BLANCO Y NEGRO)
-# ES NECESARIO APLICAR LA DWT A CADA FILA DE LA MATRIZ DE CADA CANAL RGB
+# EJEMPLO DE COMO CONVERTIR DE ARRAY A IMAGEN
+# Crear un objeto raster de la imagen
+imagen_raster <- brick(gato_01)
+
+# Visualizar la imagen en color usando plotRGB
+plotRGB(imagen_raster, r = 1, g = 2, b = 3, main = "Imagen Redimensionada 1024x1024")
+```
 
 
+### b. Aplicación de la transformada wavelet:
+
+Las wavelets son funciones matemáticas que permiten descomponer una señal en sus componentes de frecuencia a diferentes escalas, proporcionando una representación conjunta en el dominio del tiempo y la frecuencia.
+
+Para el caso de una imagen, la transformada wavelet descompone la imagen en diferentes niveles de detalle y frecuencias espaciales, dividiendo la imagen en coeficientes de baja frecuencia (aproximación) y alta frecuencia (detalle) en direcciones horizontal, vertical y diagonal. Esto permite analizar características específicas como bordes, texturas y estructuras a distintas resoluciones, facilitando aplicaciones como la compresión, eliminación de ruido y detección de bordes en imágenes.
+
+
+- Transformada en una dimensión aplicada por filas de la matriz
+
+Para cada canal, se aplica la transformada wavelet unidimensional a cada fila de su matriz de píxeles. En el caso de las imágenes en blanco y negro esta transformada se aplica sobre su matriz general, pues poseen solo un canal.
+```{r}
 # Función para aplicar wavelet a cada fila de una matriz de canales
-aplicar_wavelet_a_matriz_por_filas <- function(matriz, filtro_wavelet = "haar") {
-  lapply(1:nrow(matriz), function(i) dwt(as.numeric(matriz[i, ]), filter = filtro_wavelet))
+aplicar_dwt_matriz <- function(matriz, filtro_wavelet = "haar") {
+  lapply(1:nrow(matriz), function(i) wavelets::dwt(as.numeric(matriz[i, ]), filter = filtro_wavelet))
 }
 
 # Función para extraer canales y aplicar wavelet
-extraccion_wavelet_por_filas <- function(array_imagen, filtro_wavelet = "haar") {
-  wavelet_R <- aplicar_wavelet_a_matriz(array_imagen[, , 1], filtro_wavelet)
-  wavelet_G <- aplicar_wavelet_a_matriz(array_imagen[, , 2], filtro_wavelet)
-  wavelet_B <- aplicar_wavelet_a_matriz(array_imagen[, , 3], filtro_wavelet)
+extraccion_wavelet <- function(array_imagen, filtro_wavelet = "haar") {
+  wavelet_R <- aplicar_dwt_matriz(array_imagen[, , 1], filtro_wavelet)
+  wavelet_G <- aplicar_dwt_matriz(array_imagen[, , 2], filtro_wavelet)
+  wavelet_B <- aplicar_dwt_matriz(array_imagen[, , 3], filtro_wavelet)
   
   return(list(wavelet_R = wavelet_R, wavelet_G = wavelet_G, wavelet_B = wavelet_B))
 }
 
 # Aplicar la función a la imagen
-resultado_arbol_01 <- extraccion_wavelet(arbol_01)
-
-# Un ejemplo de los resultados
-print(resultado_arbol_01$wavelet_R[[1]])
+dwt_matriz_arbol_01 <- extraccion_wavelet(arbol_01)
 ```
+
+
+- Transformada en una dimensión aplicada al vector que concatena todas las filas de la matriz
+
+Las matrices RGB se convierten en vectores numéricos para posteriormente concatenarlos y hacer aplicar la DWT unidimensional.
+
+Nota: aqui se han concatenado los tres canales RGB, por lo que reconstruir la imagen quizás sea complicado. Probablemente sea mucho mejor no concatenar los vectores RGB y aplicar la DWT por cada canal, es decir, DWT al vector R, G y B separadamente y no como un vector único que es el caso del chunk.
+
+```{r}
+# Función para aplicar DWT en una dimensión a una imagen
+aplicar_dwt_vector <- function(imagen, filtro_wavelet = "haar") {
+  # Convertir cada canal de la imagen en un vector unidimensional
+  vector_R <- as.numeric(imagen[, , 1])
+  vector_G <- as.numeric(imagen[, , 2])
+  vector_B <- as.numeric(imagen[, , 3])
+  
+  # Concatenar los vectores de cada canal en un solo vector unidimensional
+  vector_concatenado <- c(vector_R, vector_G, vector_B)
+  
+  # Aplicar la transformada wavelet al vector concatenado
+  resultado_wavelet <- wavelets::dwt(vector_concatenado, filter = filtro_wavelet)
+  
+  return(resultado_wavelet)
+}
+
+# Aplicar la función a la imagen
+dwt_vector_arbol_01 <- aplicar_dwt_vector(arbol_01)
+```
+
+
+- Transformada en dos dimensiones aplicada por canales RGB
+
+Se aplica la transformada wavelet 2D a cada canal de color (R, G, B) de la imagen individualmente. Cada canal se descompone independientemente en sus componentes de frecuencia por lo que puede ser beneficioso si se desea analizar la información de color por separado.
+
+Poro tro lado, a la hora de resonstruir la imagen cada canal de color (R, G, B) se transforma y se reconstruye de manera independiente, tenienco como consecuencia que las interdependencias entre los canales no se tienen en cuenta durante la transformada.
+
+```{r}
+# Función para aplicar DWT en 2D a cada canal de la imagen
+aplicar_dwt2d_a_matriz <- function(array_imagen, wf = "haar") {
+  wavelet_R <- dwt.2d(array_imagen[, , 1], wf)
+  wavelet_G <- dwt.2d(array_imagen[, , 2], wf)
+  wavelet_B <- dwt.2d(array_imagen[, , 3], wf)
+  
+  return(list(wavelet_R = wavelet_R, wavelet_G = wavelet_G, wavelet_B = wavelet_B))
+}
+
+# Aplicar la función a la imagen
+dwt2d_RGB_arbol_01<- aplicar_dwt2d_a_matriz(arbol_01)
+```
+
+
+- Transformada en dos dimensiones aplicada a una imagen completa
+
+En este caso la transformada wavelet 2D se aplica directamente a la imagen completa, considerando todos los canales de color conjuntamente. De esta manera puede capturar mejor las correlaciones entre los canales de color.
+
+Se obtiene un único conjunto de coeficientes wavelet que representa toda la imagen, lo que puede ser útil si se está interesado en la estructura general de la imagen en lugar de análisis específicos de color.
+
+Por otra parte, a la hora de reconstruir la imagen todos los canales de color se consideran conjuntamente durante la transformada capturando mejor las correlaciones entre los canales de color RGB.
+
+```{r}
+# Aplicación a la imagen globalmente
+dwt2d_arbol_01 <- dwt.2d(arbol_01, "haar")
+```
+
+Para la aplicación de wavelets en dos dimensiones hay que tener en cuenta los siguientes términos:
+
++ LH: Baja frecuencia en la dirección horizontal y alta frecuencia en la dirección vertical. Captura detalles finos horizontales (bordes verticales) en la imagen.
+
++ HL: Alta frecuencia en la dirección horizontal y baja frecuencia en la dirección vertical. Captura detalles finos verticales (bordes horizontales) en la imagen.
+
++ HH: Alta frecuencia tanto en la dirección horizontal como en la dirección vertical. Captura detalles finos diagonales en la imagen.
+
 
