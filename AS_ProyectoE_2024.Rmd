@@ -1,6 +1,6 @@
 ---
 title: "AS_ProyectoE_2024"
-author: "Marcos, Pablo Selma"
+author: "Marcos, Pablo Selma, Víctor Mateu"
 date: "2024-12-24"
 output: html_document
 ---
@@ -113,7 +113,7 @@ extraccion_wavelet_columnas <- function(array_imagen, filtro_wavelet = "haar") {
 
 Las matrices RGB se convierten en vectores numéricos para posteriormente concatenarlos y hacer aplicar la DWT unidimensional.
 
-Nota: aqui se han concatenado los tres canales RGB, por lo que reconstruir la imagen quizás sea complicado. Probablemente sea mucho mejor no concatenar los vectores RGB y aplicar la DWT por cada canal, es decir, DWT al vector R, G y B separadamente y no como un vector único que es el caso del chunk.
+Nota: aquí se han concatenado los tres canales RGB, por lo que reconstruir la imagen quizás sea complicado. Probablemente sea mucho mejor no concatenar los vectores RGB y aplicar la DWT por cada canal, es decir, DWT al vector R, G y B separadamente y no como un vector único que es el caso del chunk.
 
 ```{r}
 # Función para aplicar DWT en una dimensión a una imagen
@@ -141,7 +141,7 @@ dwt_vector_arbol_01 <- aplicar_dwt_vector(arbol_01)
 
 Se aplica la transformada wavelet 2D a cada canal de color (R, G, B) de la imagen individualmente. Cada canal se descompone independientemente en sus componentes de frecuencia por lo que puede ser beneficioso si se desea analizar la información de color por separado.
 
-Por otro lado, a la hora de resonstruir la imagen cada canal de color (R, G, B) se transforma y se reconstruye de manera independiente, teniendo como consecuencia que las interdependencias entre los canales no se tienen en cuenta durante la transformada.
+Por otro lado, a la hora de reconstruir la imagen, cada canal de color (R, G, B) se transforma y se reconstruye de manera independiente, teniendo como consecuencia que las interdependencias entre los canales no se tienen en cuenta durante la transformada.
 
 ```{r}
 # Función para aplicar DWT en 2D a cada canal de la imagen
@@ -536,4 +536,136 @@ Esto lo podemos ver confirmado con la función `identical`
 identical(matriz_filas_colores, matriz_concatenada_colores)
 ```
 
+# 3. Algoritmos de compresión (2 dimensiones).
 
+### a. Generar algoritmos de reconstrucción de imagen a partir de los coeficientes wavelets.
+
+```{r}
+filtro2d_paso_bajo <- function(dwt2d_imag) {
+  dim <- dim(dwt2d_imag$LH1)
+  
+  dwt2d_imag$LH1 <- matrix(0, nrow = dim[1], ncol = dim[2])
+  dwt2d_imag$HL1 <- matrix(0, nrow = dim[1], ncol = dim[2])
+  dwt2d_imag$HH1 <- matrix(0, nrow = dim[1], ncol = dim[2])
+  
+  return(dwt2d_imag)
+}
+
+filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
+  dwt2d_imag$LH1 <- ifelse(dwt2d_imag$LH1 < quantile(dwt2d_imag$LH1, q), 0, dwt2d_imag$LH1)
+  dwt2d_imag$HL1 <- ifelse(dwt2d_imag$HL1 < quantile(dwt2d_imag$HL1, q), 0, dwt2d_imag$HL1)
+  dwt2d_imag$HH1 <- ifelse(dwt2d_imag$HH1 < quantile(dwt2d_imag$HH1, q), 0, dwt2d_imag$HH1)
+  
+  return(dwt2d_imag)
+}
+
+aplic_dwt <- function(imag, wf, nivel) {
+  dwt_imagen_r <- dwt.2d(imag[,,1], wf = wf, J = nivel)
+  dwt_imagen_g <- dwt.2d(imag[,,2], wf = wf, J = nivel)
+  dwt_imagen_b <- dwt.2d(imag[,,3], wf = wf, J = nivel)
+  return(list(dwt_imagen_r, dwt_imagen_g, dwt_imagen_b))
+}
+
+comprimir_imag <- function(dwt_imagen, filtroQ = FALSE, q = -1) {
+  if (!(filtroQ)) {
+    dwt_imag_filt_r <- filtro2d_paso_bajo(dwt_imagen[[1]])
+    dwt_imag_filt_g <- filtro2d_paso_bajo(dwt_imagen[[2]])
+    dwt_imag_filt_b <- filtro2d_paso_bajo(dwt_imagen[[3]])
+    return(list(dwt_imag_filt_r, dwt_imag_filt_g, dwt_imag_filt_b))
+  } else {
+    dwt_imag_filt_r <- filtro2d_paso_bajo2(dwt_imagen[[1]], q)
+    dwt_imag_filt_g <- filtro2d_paso_bajo2(dwt_imagen[[2]], q)
+    dwt_imag_filt_b <- filtro2d_paso_bajo2(dwt_imagen[[3]], q)
+    return(list(dwt_imag_filt_r, dwt_imag_filt_g, dwt_imag_filt_b))
+  }
+}
+
+reconstruir_imag <- function(dwt_imagen, dim) {
+  imagen_rec_rgb <- array(0, dim = c(dim[1], dim[2], 3))
+  imagen_rec_rgb[,,1] <- idwt.2d(dwt_imagen[[1]])
+  imagen_rec_rgb[,,2] <- idwt.2d(dwt_imagen[[2]])
+  imagen_rec_rgb[,,3] <- idwt.2d(dwt_imagen[[3]])
+  return(imagen_rec_rgb)
+}
+```
+
+La función `filtro2d_paso_bajo` realiza un filtro de paso bajo sobre los coeficientes de la transformada Wavelet discreta en 2D. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolas en cero para reducir la información.
+
+La función `filtro2d_paso_bajo2` realiza un filtro de paso bajo sobre los coeficientes de la transformada Wavelet discreta en 2D ajustado por un umbral. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolas en cero si son menores que el umbral (q, que es un cuantil de los coeficientes de la subbanda de la imagen respectiva) para reducir la información.
+
+La función `aplic_dwt` aplica la Transformada Wavelet Discreta en 2D a los tres canales de la imagen, especificado el filtro wavelet (wf) y el nivel.
+
+La función `comprimir_imag` comprime la imagen, especificando el filtro a usar. Si filtroQ es FALSE, se usa el filtro `filtro2d_paso_bajo`, y si filtroQ es TRUE, se usa el filtro `filtro2d_paso_bajo2`. En este último caso, también se deberá especificar el cuantil que se quiera usar en el filtro.
+
+La función `reconstruir_imag` reconstruye la imagen por canal dada la dimensión de la imagen y dadas las transformadas Wavelet discretas en 2D de sus tres canales.
+
+Procedemos a comprimir y a reconstruir la imagen usada en el apartado anterior, utilizando los dos filtros que han sido definidos en el chunk anterior.
+
+```{r}
+matriz_imagen <- perro_01
+dim <- dim(matriz_imagen)
+
+dwt_imagen <- aplic_dwt(matriz_imagen, "haar", 1)
+imagen_comp1 <- comprimir_imag(dwt_imagen)
+imagen_rec1 <- reconstruir_imag(imagen_comp1, dim)
+q <- 0.5
+imagen_comp2 <- comprimir_imag(dwt_imagen, TRUE, q)
+imagen_rec2 <- reconstruir_imag(imagen_comp2, dim)
+```
+
+Procedemos a mostrar la imagen original, la imagen comprimida con el filtro de paso bajo reconstruida, y la imagen comprimida con el filtro de paso bajo utilizando el umbral reconstruida.
+
+```{r}
+grid.newpage()
+print("Imagen Original")
+grid.raster(matriz_imagen / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 1")
+grid.raster(imagen_rec1 / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 2")
+grid.raster(imagen_rec2 / 255)
+```
+
+### b. Programar (o buscar) funciones (por ejemplo MSE) para medir el error entre la imagen original y la comprimida.
+
+```{r}
+mse_imags <- function(imag1, imag2) {
+  return(mean(c(mean((imag1[,,1] - imag2[,,1])^2), mean((imag1[,,2] - imag2[,,2])^2), mean((imag1[,,3] - imag2[,,3])^2))))
+}
+
+mae_imags <- function(imag1, imag2) {
+  return(mean(c(mean(abs(imag1[,,1] - imag2[,,1])), mean(abs(imag1[,,2] - imag2[,,2])), mean(abs(imag1[,,3] - imag2[,,3])))))
+}
+
+psnr_imags <- function(imag1, imag2) {
+  mse <- mse_imags(imag1, imag2)
+  max_intensidad <- 255
+  return(10 * log10((max_intensidad^2) / mse))
+}
+
+calc_errores <- function(imag1, imag2) {
+  return(c("MSE" = mse_imags(imag1, imag2), "MAE" = mae_imags(imag1, imag2), "PSNR" = psnr_imags(imag1, imag2)))
+}
+```
+
+MSE: Error Cuadrático Medio. Media aritmética de los MSEs de los tres canales.
+
+MAE: Error Absoluto Medio. Media aritmética de los MAEs de los tres canales.
+
+PSNR: Proporción Máxima de Señal-Ruido (relación entre la máxima energía posible de una señal y el ruido que afecta a su representación fidedigna). El MSE se ha calculado como la media aritmética de los MSEs de los tres canales.
+
+### c. Analizar y ordenar los algoritmos vistos hasta el momento en base a la relación calidad / nivel de compresión
+
+```{r}
+print("Error filtro paso bajo:")
+calc_errores(matriz_imagen, imagen_rec1)
+print("Error filtro paso bajo 2:")
+calc_errores(matriz_imagen, imagen_rec2)
+print("Error filtro paso bajo por filas:")
+calc_errores(matriz_imagen, matriz_filas_colores)
+```
+
+A vista de los resultados obtenidos, la compresión que usa el filtro de paso bajo con el umbral aplicado a la transformada Wavelet discreta en 2D es el que proporciona mayor calidad de imagen, seguido de la compresión que usa el filtro de paso bajo aplicado a la transformada Wavelet discreta en 2D.
