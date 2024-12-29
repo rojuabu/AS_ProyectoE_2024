@@ -552,9 +552,9 @@ filtro2d_paso_bajo <- function(dwt2d_imag) {
 }
 
 filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
-  dwt2d_imag$LH1 <- ifelse(dwt2d_imag$LH1 < quantile(dwt2d_imag$LH1, q), 0, dwt2d_imag$LH1)
-  dwt2d_imag$HL1 <- ifelse(dwt2d_imag$HL1 < quantile(dwt2d_imag$HL1, q), 0, dwt2d_imag$HL1)
-  dwt2d_imag$HH1 <- ifelse(dwt2d_imag$HH1 < quantile(dwt2d_imag$HH1, q), 0, dwt2d_imag$HH1)
+  dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) < quantile(abs(dwt2d_imag$LH1), q), 0, dwt2d_imag$LH1)
+  dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) < quantile(abs(dwt2d_imag$HL1), q), 0, dwt2d_imag$HL1)
+  dwt2d_imag$HH1 <- ifelse(abs(dwt2d_imag$HH1) < quantile(abs(dwt2d_imag$HH1), q), 0, dwt2d_imag$HH1)
   
   return(dwt2d_imag)
 }
