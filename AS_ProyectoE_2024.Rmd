@@ -24,7 +24,7 @@ library(grid)
 En primer lugar se importan las imágenes a analizar para posteriormente hacer un redimensionamiento de estas a imágenes con dimensiones que son potencia de 2, ya que, la transformada Wavelet descompone las componentes en estas potencias.
 
 Por otro lado, las transformamos en arrays que contienen los distintos canales RGB y para aquellas fotos con filtro blanco y negro extraemos solo un canal, puesto que todos son iguales.
-```{r}
+```{r 1_1_1_funcion_procesar_imagen, echo=TRUE}
 # Definir una función para redimensionar y convertir en array
 procesar_imagen <- function(ruta_imagen, tamano) {
   imagen <- image_read(ruta_imagen)
@@ -32,7 +32,9 @@ procesar_imagen <- function(ruta_imagen, tamano) {
   array_imagen <- as.integer(image_data(imagen_redimensionada))
   return(array_imagen)
 }
+```
 
+```{r 1_1_2_procesar_imagenes, echo=FALSE}
 # Aplicar la función a cada imagen
 arbol_01 <- procesar_imagen("./images/arbol_01.jpg", "1024x1024!")
 arbol_03 <- procesar_imagen("./images/arbol_03.jpg", "1024x1024!")
@@ -55,7 +57,7 @@ peluche_01_filtro <- peluche_01_filtro[, , 1]
 gato_02_filtro <- gato_02_filtro[, , 1]
 ```
 
-```{r}
+```{r 1_1_3_ejemplo_array_a_imagen, echo=TRUE}
 # EJEMPLO DE COMO CONVERTIR DE ARRAY A IMAGEN
 # Crear un objeto raster de la imagen
 imagen_raster <- brick(gato_01)
@@ -72,10 +74,10 @@ Las wavelets son funciones matemáticas que permiten descomponer una señal en s
 Para el caso de una imagen, la transformada wavelet descompone la imagen en diferentes niveles de detalle y frecuencias espaciales, dividiendo la imagen en coeficientes de baja frecuencia (aproximación) y alta frecuencia (detalle) en direcciones horizontal, vertical y diagonal. Esto permite analizar características específicas como bordes, texturas y estructuras a distintas resoluciones, facilitando aplicaciones como la compresión, eliminación de ruido y detección de bordes en imágenes.
 
 
-- Transformada en una dimensión aplicada por filas de la matriz
+#### Transformada en una dimensión aplicada por filas de la matriz
 
 Para cada canal, se aplica la transformada wavelet unidimensional a cada fila de su matriz de píxeles. En el caso de las imágenes en blanco y negro esta transformada se aplica sobre su matriz general, pues poseen solo un canal.
-```{r}
+```{r 1_2_1_wavelet_1d_por_filas, echo=FALSE}
 # Función para aplicar wavelet a cada fila de una matriz de canales
 aplicar_dwt_filas <- function(matriz, filtro_wavelet = "haar") {
   lapply(1:nrow(matriz), function(i) wavelets::dwt(as.numeric(matriz[i, ]), filter = filtro_wavelet, n.levels=2))
@@ -109,13 +111,13 @@ extraccion_wavelet_columnas <- function(array_imagen, filtro_wavelet = "haar") {
 ```
 
 
-- Transformada en una dimensión aplicada al vector que concatena todas las filas de la matriz
+#### Transformada en una dimensión aplicada al vector que concatena todas las filas de la matriz
 
 Las matrices RGB se convierten en vectores numéricos para posteriormente concatenarlos y hacer aplicar la DWT unidimensional.
 
 Nota: aquí se han concatenado los tres canales RGB, por lo que reconstruir la imagen quizás sea complicado. Probablemente sea mucho mejor no concatenar los vectores RGB y aplicar la DWT por cada canal, es decir, DWT al vector R, G y B separadamente y no como un vector único que es el caso del chunk.
 
-```{r}
+```{r 1_2_2_wavelet_1d_concatenado, echo=FALSE}
 # Función para aplicar DWT en una dimensión a una imagen
 aplicar_dwt_vector <- function(imagen, filtro_wavelet = "haar") {
   # Convertir cada canal de la imagen en un vector unidimensional
@@ -137,13 +139,13 @@ dwt_vector_arbol_01 <- aplicar_dwt_vector(arbol_01)
 ```
 
 
-- Transformada en dos dimensiones aplicada por canales RGB
+#### Transformada en dos dimensiones aplicada por canales RGB
 
 Se aplica la transformada wavelet 2D a cada canal de color (R, G, B) de la imagen individualmente. Cada canal se descompone independientemente en sus componentes de frecuencia por lo que puede ser beneficioso si se desea analizar la información de color por separado.
 
 Por otro lado, a la hora de reconstruir la imagen, cada canal de color (R, G, B) se transforma y se reconstruye de manera independiente, teniendo como consecuencia que las interdependencias entre los canales no se tienen en cuenta durante la transformada.
 
-```{r}
+```{r 1_2_3_wavelet_2d_RGB_por_separado, echo = FALSE}
 # Función para aplicar DWT en 2D a cada canal de la imagen
 aplicar_dwt2d_a_matriz <- function(array_imagen, wf = "haar") {
   wavelet_R <- dwt.2d(array_imagen[, , 1], wf)
@@ -158,7 +160,7 @@ dwt2d_RGB_arbol_01<- aplicar_dwt2d_a_matriz(arbol_01)
 ```
 
 
-- Transformada en dos dimensiones aplicada a una imagen completa
+#### Transformada en dos dimensiones aplicada a una imagen completa
 
 En este caso la transformada wavelet 2D se aplica directamente a la imagen completa, considerando todos los canales de color conjuntamente. De esta manera puede capturar mejor las correlaciones entre los canales de color.
 
@@ -166,9 +168,10 @@ Se obtiene un único conjunto de coeficientes wavelet que representa toda la ima
 
 Por otra parte, a la hora de reconstruir la imagen todos los canales de color se consideran conjuntamente durante la transformada capturando mejor las correlaciones entre los canales de color RGB.
 
-```{r}
+```{r 1_2_4_wavelet_2d_completa, echo=FALSE}
 # Aplicación a la imagen globalmente
-dwt2d_arbol_01 <- dwt.2d(arbol_01, "haar")
+dwt2d_arbol_01 <- dwt.2d(arbol_01, "haar", J = 2)
+plot.dwt.2d(dwt2d_arbol_01)
 ```
 
 Para la aplicación de wavelets en dos dimensiones hay que tener en cuenta los siguientes términos:
@@ -189,7 +192,7 @@ También podemos realizar las transformadas wavelet 2D únicamente mediante la f
 Realizaremos la demostración sobre una imagen en blanco y negro para tener que ocuparnos de una sola matriz (grises), en vez de tres (rojo, verde, azul) como sucedería con una imagen a color. Sin embargo, notamos que el siguiente método también se puede aplicar análogamente a imágenes a color.
 
 
-```{r}
+```{r 1_2_5_dwt2d_casera_1, echo=FALSE}
 # Función análoga a extraccion_dwt_filas() pero para imágenes con un sólo canal de color (gris)
 extraccion_dwt_filas_byn <- function(array_imagen, filtro_wavelet = "haar") {
   wavelet_filas <- aplicar_dwt_filas(array_imagen[, ], filtro_wavelet)
@@ -207,7 +210,7 @@ extraccion_dwt_columnas_byn <- function(array_imagen, filtro_wavelet = "haar") {
 
 Definimos nuestras funciones de filtro de paso alto y filtro de paso bajo:
 
-```{r}
+```{r 1_2_5_dwt2d_casera_2, echo=FALSE}
 filtro_filas_paso_bajo <- function(copia, copia_2){
   
   # Obtenemos las dimensiones de los Detalles de la transformada wavelet
@@ -228,7 +231,7 @@ filtro_filas_paso_bajo <- function(copia, copia_2){
 ```
 
 
-```{r}
+```{r 1_2_5_dwt2d_casera_3, echo=FALSE}
 filtro_columnas_paso_bajo <- function(copia, copia_2){
 
   nrow_c1 <- dim(copia$wavelet_columnas[[1]]@W$W1)[1]
@@ -247,7 +250,7 @@ filtro_columnas_paso_bajo <- function(copia, copia_2){
 ```
 
 
-```{r}
+```{r 1_2_5_dwt2d_casera_4, echo=FALSE}
 filtro_filas_paso_alto <- function(copia, copia_2){
 
   # En este filtro y en el siguiente, en vez de anular los Detalles, anularemos las Aproximaciones
@@ -267,7 +270,7 @@ filtro_filas_paso_alto <- function(copia, copia_2){
 ```
 
 
-```{r}
+```{r 1_2_5_dwt2d_casera_5, echo=FALSE}
 filtro_columnas_paso_alto <- function(copia, copia_2){
 
   nrow_c1 <- dim(copia$wavelet_columnas[[1]]@V$V1)[1]
@@ -287,7 +290,7 @@ filtro_columnas_paso_alto <- function(copia, copia_2){
 
 
 Obtenemos los detalles horizontales de la imagen, LH. Básicamente, aplicamos un filtro de paso bajo a las filas y un filtro de paso alto a las columnas.
-```{r}
+```{r 1_2_5_dwt2d_casera_6, echo=FALSE}
 LH_detalles_horizontales <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -300,7 +303,7 @@ LH_detalles_horizontales <- function(matriz_imagen){
 }
 ```
 
-```{r}
+```{r 1_2_5_dwt2d_casera_7, echo=FALSE}
 copia_LH <- LH_detalles_horizontales(flor_05_filtro)
 
 # Comparamos con la imagen original (estas líneas están comentadas para que el documento final no se llene de imágenes)
@@ -310,14 +313,13 @@ copia_LH <- LH_detalles_horizontales(flor_05_filtro)
 
 grid.newpage() # Función necesaria para mostrar imágenes con grid.raster (usada a continuación)
 copia_LH <- (copia_LH - min(copia_LH))/(max(copia_LH) - min(copia_LH)) # Se normalizan los elementos para que se encuentren en el intervalo [0, 1]
-grid.raster(copia_LH) # Mostramos la imagen. 
+#grid.raster(copia_LH) # Mostramos la imagen. 
 
 # Nota: A la función grid.raster() se le asigna una matriz y te genera una imagen. Si la la profundidad de la matriz es 1 (es decir sólo tiene filas y columnas) interpreta que la imagen está en tonos de grises; si su profundidad es 3, interpreta que la imagen está en RGB asignando a cada profundidad tonos de rojo, verde y azul, respectivamente.
 ```
 
-
 Obtenemos los detalles verticales de la imagen, HL. Realizamos un filtro de paso alto a las filas y un filtro de paso bajo a las columnas.
-```{r}
+```{r 1_2_5_dwt2d_casera_8, echo=FALSE}
 HL_detalles_verticales <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -330,7 +332,7 @@ HL_detalles_verticales <- function(matriz_imagen){
 }
 ```
 
-```{r}
+```{r 1_2_5_dwt2d_casera_9, echo=FALSE}
 copia_HL <- HL_detalles_verticales(flor_05_filtro)
 
 # grid.newpage()
@@ -338,13 +340,11 @@ copia_HL <- HL_detalles_verticales(flor_05_filtro)
 
 grid.newpage()
 copia_HL <- (copia_HL - min(copia_HL))/(max(copia_HL) - min(copia_HL)) # Se normalizan los elementos para que se encuentren en el intervalo [0, 1]
-grid.raster(copia_HL)
+#grid.raster(copia_HL)
 ```
 
-
-
 Obtenemos la imagen suavizada, LL. Aplicamos un filtro de paso bajo a las filas y un fitro de paso bajo a las columnas.
-```{r}
+```{r 1_2_5_dwt2d_casera_10, echo=FALSE}
 LL_suavizado <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -357,20 +357,21 @@ LL_suavizado <- function(matriz_imagen){
 }
 ```
 
-```{r}
+```{r 1_2_5_dwt2d_casera_11, echo=FALSE}
 copia_LL <- LL_suavizado(flor_05_filtro)
 
 # grid.newpage()
 # grid.raster(flor_05_filtro/255)
 
 grid.newpage()
-grid.raster(copia_LL/255) # Se divide entre 255 para que los elementos se encuentren en el intervalo [0, 1] (la matriz puede tener valores entre [0, 255], los transformamos al intervalo [0, 1] debido a que la función grid.raster trabaja con dicho intervalo)
+#grid.raster(copia_LL/255) # Se divide entre 255 para que los elementos se encuentren en el intervalo [0, 1] (la matriz puede tener valores entre [0, 255], los transformamos al intervalo [0, 1] debido a que la función grid.raster trabaja con dicho intervalo)
 ```
 
 
 
+
 Obtenemos los detalles diagonales, HH. Realizamos un filtro de paso alto tanto a las filas como a las columnas.
-```{r}
+```{r 1_2_5_dwt2d_casera_12, echo=FALSE}
 HH_detalles_diagonales <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -383,7 +384,7 @@ HH_detalles_diagonales <- function(matriz_imagen){
 }
 ```
 
-```{r}
+```{r 1_2_5_dwt2d_casera_13, echo=FALSE}
 copia_HH <- HH_detalles_diagonales(flor_05_filtro)
 
 # grid.newpage()
@@ -391,7 +392,43 @@ copia_HH <- HH_detalles_diagonales(flor_05_filtro)
 
 grid.newpage()
 copia_HH <- (copia_HH - min(copia_HH))/(max(copia_HH) - min(copia_HH)) # Se normalizan los elementos para que se encuentren en el intervalo [0, 1]
-grid.raster(copia_HH)
+#grid.raster(copia_HH)
+```
+
+
+```{r 1_2_6_plot_dwt_2d_casero, echo = FALSE}
+
+# Función para fusionar 4 matrices n x n en una matriz 2n x 2n y representarla
+fusionar_y_mostrar_imagenes <- function(imagen1, imagen2, imagen3, imagen4) {
+  # Verificar que las imágenes tengan dimensiones compatibles
+  if (!all(dim(imagen1) == dim(imagen2), dim(imagen2) == dim(imagen3), dim(imagen3) == dim(imagen4))) {
+    stop("Las dimensiones de las imágenes deben ser iguales.")
+  }
+  
+  n <- dim(imagen1)[1]  
+  
+  imagen_fusionada <- matrix(0, nrow = 2 * n, ncol = 2 * n)
+  
+  imagen_fusionada[1:n, 1:n] <- imagen1   # Cuadrante superior izquierdo
+  imagen_fusionada[1:n, (n + 1):(2 * n)] <- imagen2  # Cuadrante superior derecho
+  imagen_fusionada[(n + 1):(2 * n), 1:n] <- imagen3   # Cuadrante inferior izquierdo
+  imagen_fusionada[(n + 1):(2 * n), (n + 1):(2 * n)] <- imagen4  # Cuadrante inferior derecho
+  
+  grid.newpage()
+  
+  # Mostrar la imagen fusionada
+  grid.raster(imagen_fusionada, interpolate = TRUE)
+  
+  # Textos
+  grid.text("HL", x = unit(0.35, "npc"), y = unit(0.95, "npc"), gp = gpar(fontsize = 16, fontface = "bold") )
+  grid.text("HH", x = unit(0.65, "npc"), y = unit(0.95, "npc"), gp = gpar(fontsize = 16, fontface = "bold") )
+  grid.text("LL", x = unit(0.35, "npc"), y = unit(0.45, "npc"), gp = gpar(fontsize = 16, fontface = "bold") )
+  grid.text("LH", x = unit(0.65, "npc"), y = unit(0.45, "npc"), gp = gpar(fontsize = 16, fontface = "bold") )
+}
+
+
+fusionar_y_mostrar_imagenes(copia_HL, copia_HH, copia_LL/256, copia_LH)
+
 ```
 
 
@@ -400,7 +437,7 @@ grid.raster(copia_HH)
 ### a. Reconstrucción de imagen para la transformada wavelet por filas.
 
 Realizamos una función para aplicar un filtro de paso bajo por filas a los tres canales de color.
-```{r}
+```{r 2_1_1_funcion_paso_bajo, echo=FALSE}
 # Esta función es totalmente análoga a la función filtro_filas_paso_bajo() previamente creada.
 # Sin embargo, su existencia se debe a que la forma que tiene la matriz transformada es ligeramente distinta:
 # filtro_filas_paso_bajo:        copia$wavelet_filas[[1]]@W$W1
@@ -424,13 +461,13 @@ filtro_filas_paso_bajo_color <- function(copia, copia_2){
 ```
 
 Tomamos una imagen a color, realizamos transformadas wavelet a sus filas y reconstruimos la imagen habiendo eliminado los niveles de detalle
-```{r}
+```{r 2_1_2_ejemplo_1_1, echo=FALSE}
 matriz_imagen <- perro_01
 
 copia_dwt_filas_color <- extraccion_wavelet_filas(matriz_imagen, filtro_wavelet="haar")
 ```
 
-```{r}
+```{r 2_1_2_ejemplo_1_2, echo=FALSE}
 matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
 
 # Asignamos a una variable cada uno de los tres canales, porque la función filtro_filas_paso_bajo_color trabaja sobre los canales individualmente, no sobre la matriz.
@@ -480,8 +517,8 @@ grid.raster(matriz_filas_colores/255) # Dado que la matriz matriz_filas_colores/
 
 ### b. Reconstrucción de imagen para la transformada wavelet concatenando todas las filas de la matriz.
 
-Realizamos el logaritmo que concatena todas las filas de la matriz y, por tanto, realiza una única transformada wavelet
-```{r}
+Realizamos el algoritmo que concatena todas las filas de la matriz y, por tanto, realiza una única transformada wavelet
+```{r 2_2_1_concatenar, echo=FALSE}
 dwt_concatenada_filas <- function(matriz_imagen_color){
   copia_concatenada <- matriz_imagen_color
   copia_concatenada <- as.numeric(t(copia_concatenada)) # Concatenamos todos los elementos de la matriz en una única fila (trasponemos la matriz porque R ordena los elementos por columnas en vez de por filas)
@@ -509,7 +546,7 @@ dwt_concatenada_filas <- function(matriz_imagen_color){
 
 
 Aplicamos el algoritmo a los tres canales de color de nuestra imagen
-```{r}
+```{r 2_2_2_aplicar_a_concatenar, echo=FALSE}
 matriz_imagen <- perro_01
 
 matriz_concatenada_rojo <- dwt_concatenada_filas(perro_01[ , , 1])
@@ -532,7 +569,7 @@ grid.raster(matriz_concatenada_colores/255)
 
 Destacamos que la imagen obtenida al realizar transformadas wavelet iterativamente a las filas de la matriz nos devuelve exactamente el mismo resultado que si concatenamos todas las filas de la matriz y realizamos una única transformada wavelet.
 Esto lo podemos ver confirmado con la función `identical`
-```{r}
+```{r 2_2_3_son_iguales, echo=FALSE}
 identical(matriz_filas_colores, matriz_concatenada_colores)
 ```
 
@@ -540,7 +577,7 @@ identical(matriz_filas_colores, matriz_concatenada_colores)
 
 ### a. Generar algoritmos de reconstrucción de imagen a partir de los coeficientes wavelets.
 
-```{r}
+```{r 3_1_1_funcion2d_paso_bajo, echo=FALSE}
 filtro2d_paso_bajo <- function(dwt2d_imag) {
   dim <- dim(dwt2d_imag$LH1)
   
@@ -601,7 +638,7 @@ La función `reconstruir_imag` reconstruye la imagen por canal dada la dimensió
 
 Procedemos a comprimir y a reconstruir la imagen usada en el apartado anterior, utilizando los dos filtros que han sido definidos en el chunk anterior.
 
-```{r}
+```{r 3_1_2_ejemplo_1_1, echo=FALSE}
 matriz_imagen <- perro_01
 dim <- dim(matriz_imagen)
 
@@ -615,7 +652,7 @@ imagen_rec2 <- reconstruir_imag(imagen_comp2, dim)
 
 Procedemos a mostrar la imagen original, la imagen comprimida con el filtro de paso bajo reconstruida, y la imagen comprimida con el filtro de paso bajo utilizando el umbral reconstruida.
 
-```{r}
+```{r 3_1_2_ejemplo_1_2, echo=FALSE}
 grid.newpage()
 print("Imagen Original")
 grid.raster(matriz_imagen / 255)
@@ -631,7 +668,7 @@ grid.raster(imagen_rec2 / 255)
 
 ### b. Programar (o buscar) funciones (por ejemplo MSE) para medir el error entre la imagen original y la comprimida.
 
-```{r}
+```{r 3_2_1_medidas_de_error, echo=TRUE}
 mse_imags <- function(imag1, imag2) {
   return(mean(c(mean((imag1[,,1] - imag2[,,1])^2), mean((imag1[,,2] - imag2[,,2])^2), mean((imag1[,,3] - imag2[,,3])^2))))
 }
@@ -659,7 +696,7 @@ PSNR: Proporción Máxima de Señal-Ruido (relación entre la máxima energía p
 
 ### c. Analizar y ordenar los algoritmos vistos hasta el momento en base a la relación calidad / nivel de compresión
 
-```{r}
+```{r 3_2_1_errores_en_ejemplo_3_1, echo=FALSE}
 print("Error filtro paso bajo:")
 calc_errores(matriz_imagen, imagen_rec1)
 print("Error filtro paso bajo 2:")
