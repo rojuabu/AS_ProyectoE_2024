@@ -645,9 +645,13 @@ dim <- dim(matriz_imagen)
 dwt_imagen <- aplic_dwt(matriz_imagen, "haar", 1)
 imagen_comp1 <- comprimir_imag(dwt_imagen)
 imagen_rec1 <- reconstruir_imag(imagen_comp1, dim)
-q <- 0.5
-imagen_comp2 <- comprimir_imag(dwt_imagen, TRUE, q)
-imagen_rec2 <- reconstruir_imag(imagen_comp2, dim)
+q <- c(0.5, 0.7, 0.9)
+imagen_comp21 <- comprimir_imag(dwt_imagen, TRUE, q[1])
+imagen_rec21 <- reconstruir_imag(imagen_comp21, dim)
+imagen_comp22 <- comprimir_imag(dwt_imagen, TRUE, q[2])
+imagen_rec22 <- reconstruir_imag(imagen_comp22, dim)
+imagen_comp23 <- comprimir_imag(dwt_imagen, TRUE, q[3])
+imagen_rec23 <- reconstruir_imag(imagen_comp23, dim)
 ```
 
 Procedemos a mostrar la imagen original, la imagen comprimida con el filtro de paso bajo reconstruida, y la imagen comprimida con el filtro de paso bajo utilizando el umbral reconstruida.
@@ -662,8 +666,16 @@ print("Reconstrucción usando el filtro 1")
 grid.raster(imagen_rec1 / 255)
 
 grid.newpage()
-print("Reconstrucción usando el filtro 2")
-grid.raster(imagen_rec2 / 255)
+print("Reconstrucción usando el filtro 2, q = 0.5")
+grid.raster(imagen_rec21 / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 2, q = 0.7")
+grid.raster(imagen_rec22 / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 2, q = 0.9")
+grid.raster(imagen_rec23 / 255)
 ```
 
 ### b. Programar (o buscar) funciones (por ejemplo MSE) para medir el error entre la imagen original y la comprimida.
@@ -706,3 +718,36 @@ calc_errores(matriz_imagen, matriz_filas_colores)
 ```
 
 A vista de los resultados obtenidos, la compresión que usa el filtro de paso bajo con el umbral aplicado a la transformada Wavelet discreta en 2D es el que proporciona mayor calidad de imagen, seguido de la compresión que usa el filtro de paso bajo aplicado a la transformada Wavelet discreta en 2D.
+
+```{r}
+imags <- list(arbol_01, arbol_03, perro_01, flor_01, flor_02, planta_01, pinas_01, gato_01)
+nombres <- c("arbol_01", "arbol_03", "perro_01", "flor_01", "flor_02", "planta_01", "pinas_01", "gato_01")
+cols <- c("Imagen", "Método", "MSE", "MAE", "PSNR")
+tabla_info <- data.frame(matrix(ncol = length(cols), nrow = 0))
+q <- 0.7
+
+for (i in 1:length(imags)) {
+  imag <- imags[[i]]
+  dim <- dim(imag)
+  
+  dwt_imagen <- aplic_dwt(imag, "haar", 1)
+  imagen_comp1 <- comprimir_imag(dwt_imagen)
+  imagen_rec1 <- reconstruir_imag(imagen_comp1, dim)
+  
+  imagen_comp2 <- comprimir_imag(dwt_imagen, TRUE, q)
+  imagen_rec2 <- reconstruir_imag(imagen_comp2, dim)
+  
+  info1 <- calc_errores(imag, imagen_rec1)
+  info2 <- calc_errores(imag, imagen_rec2)
+  nom_info1 <- c(c(nombres[i], "Método 1"), info1)
+  nom_info2 <- c(c(nombres[i], "Método 2"), info2)
+  tabla_info <- rbind(tabla_info, nom_info1)
+  tabla_info <- rbind(tabla_info, nom_info2)
+}
+
+colnames(tabla_info) <- cols
+```
+
+```{r}
+print(tabla_info)
+```
