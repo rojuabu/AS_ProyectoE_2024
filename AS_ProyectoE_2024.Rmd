@@ -596,33 +596,54 @@ filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
   return(dwt2d_imag)
 }
 
-aplic_dwt <- function(imag, wf, nivel) {
-  dwt_imagen_r <- dwt.2d(imag[,,1], wf = wf, J = nivel)
-  dwt_imagen_g <- dwt.2d(imag[,,2], wf = wf, J = nivel)
-  dwt_imagen_b <- dwt.2d(imag[,,3], wf = wf, J = nivel)
-  return(list(dwt_imagen_r, dwt_imagen_g, dwt_imagen_b))
-}
-
-comprimir_imag <- function(dwt_imagen, filtroQ = FALSE, q = -1) {
-  if (!(filtroQ)) {
-    dwt_imag_filt_r <- filtro2d_paso_bajo(dwt_imagen[[1]])
-    dwt_imag_filt_g <- filtro2d_paso_bajo(dwt_imagen[[2]])
-    dwt_imag_filt_b <- filtro2d_paso_bajo(dwt_imagen[[3]])
-    return(list(dwt_imag_filt_r, dwt_imag_filt_g, dwt_imag_filt_b))
+aplic_dwt <- function(imag, bn, wf, nivel) {
+  if (bn) {
+    dwt_imagen <- dwt.2d(imag, wf = wf, J = nivel)
+    return(dwt_imagen)
   } else {
-    dwt_imag_filt_r <- filtro2d_paso_bajo2(dwt_imagen[[1]], q)
-    dwt_imag_filt_g <- filtro2d_paso_bajo2(dwt_imagen[[2]], q)
-    dwt_imag_filt_b <- filtro2d_paso_bajo2(dwt_imagen[[3]], q)
-    return(list(dwt_imag_filt_r, dwt_imag_filt_g, dwt_imag_filt_b))
+    dwt_imagen_r <- dwt.2d(imag[,,1], wf = wf, J = nivel)
+    dwt_imagen_g <- dwt.2d(imag[,,2], wf = wf, J = nivel)
+    dwt_imagen_b <- dwt.2d(imag[,,3], wf = wf, J = nivel)
+    return(list(dwt_imagen_r, dwt_imagen_g, dwt_imagen_b))
   }
 }
 
-reconstruir_imag <- function(dwt_imagen, dim) {
-  imagen_rec_rgb <- array(0, dim = c(dim[1], dim[2], 3))
-  imagen_rec_rgb[,,1] <- idwt.2d(dwt_imagen[[1]])
-  imagen_rec_rgb[,,2] <- idwt.2d(dwt_imagen[[2]])
-  imagen_rec_rgb[,,3] <- idwt.2d(dwt_imagen[[3]])
-  return(imagen_rec_rgb)
+comprimir_imag <- function(dwt_imagen, bn = FALSE, filtroQ = FALSE, q = -1) {
+  if (bn) {
+    if (!(filtroQ)) {
+      dwt_imag_filt <- filtro2d_paso_bajo(dwt_imagen)
+      return(dwt_imag_filt)
+    } else {
+      dwt_imag_filt <- filtro2d_paso_bajo2(dwt_imagen, q)
+      return(dwt_imag_filt)
+    }
+  } else {
+    if (!(filtroQ)) {
+      dwt_imag_filt_r <- filtro2d_paso_bajo(dwt_imagen[[1]])
+      dwt_imag_filt_g <- filtro2d_paso_bajo(dwt_imagen[[2]])
+      dwt_imag_filt_b <- filtro2d_paso_bajo(dwt_imagen[[3]])
+      return(list(dwt_imag_filt_r, dwt_imag_filt_g, dwt_imag_filt_b))
+    } else {
+      dwt_imag_filt_r <- filtro2d_paso_bajo2(dwt_imagen[[1]], q)
+      dwt_imag_filt_g <- filtro2d_paso_bajo2(dwt_imagen[[2]], q)
+      dwt_imag_filt_b <- filtro2d_paso_bajo2(dwt_imagen[[3]], q)
+      return(list(dwt_imag_filt_r, dwt_imag_filt_g, dwt_imag_filt_b))
+    }
+  }
+}
+
+reconstruir_imag <- function(dwt_imagen, bn, dim) {
+  if (bn) {
+    imagen_rec <- array(0, dim = c(dim[1], dim[2]))
+    imagen_rec <- idwt.2d(dwt_imagen)
+    return(imagen_rec)
+  } else {
+    imagen_rec_rgb <- array(0, dim = c(dim[1], dim[2], 3))
+    imagen_rec_rgb[,,1] <- idwt.2d(dwt_imagen[[1]])
+    imagen_rec_rgb[,,2] <- idwt.2d(dwt_imagen[[2]])
+    imagen_rec_rgb[,,3] <- idwt.2d(dwt_imagen[[3]])
+    return(imagen_rec_rgb)
+  }
 }
 ```
 
@@ -630,11 +651,11 @@ La función `filtro2d_paso_bajo` realiza un filtro de paso bajo sobre los coefic
 
 La función `filtro2d_paso_bajo2` realiza un filtro de paso bajo sobre los coeficientes de la transformada Wavelet discreta en 2D ajustado por un umbral. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolas en cero si son menores que el umbral (q, que es un cuantil de los coeficientes de la subbanda de la imagen respectiva) para reducir la información.
 
-La función `aplic_dwt` aplica la Transformada Wavelet Discreta en 2D a los tres canales de la imagen, especificado el filtro wavelet (wf) y el nivel.
+La función `aplic_dwt` aplica la Transformada Wavelet Discreta en 2D a los tres canales de la imagen (si bn = TRUE; si no, se trata la imagen como en blanco y negro), especificado el filtro wavelet (wf) y el nivel.
 
-La función `comprimir_imag` comprime la imagen, especificando el filtro a usar. Si filtroQ es FALSE, se usa el filtro `filtro2d_paso_bajo`, y si filtroQ es TRUE, se usa el filtro `filtro2d_paso_bajo2`. En este último caso, también se deberá especificar el cuantil que se quiera usar en el filtro.
+La función `comprimir_imag` comprime la imagen, especificando si está en blanco y negro (bn = TRUE), o no; y el filtro a usar. Si filtroQ es FALSE, se usa el filtro `filtro2d_paso_bajo`, y si filtroQ es TRUE, se usa el filtro `filtro2d_paso_bajo2`. En este último caso, también se deberá especificar el cuantil que se quiera usar en el filtro.
 
-La función `reconstruir_imag` reconstruye la imagen por canal dada la dimensión de la imagen y dadas las transformadas Wavelet discretas en 2D de sus tres canales.
+La función `reconstruir_imag` reconstruye la imagen por canal especificado si está en blanco y negro (bn = TRUE), o no, dada la dimensión de la imagen y dadas las transformadas Wavelet discretas en 2D de sus tres canales.
 
 Procedemos a comprimir y a reconstruir la imagen usada en el apartado anterior, utilizando los dos filtros que han sido definidos en el chunk anterior.
 
@@ -642,16 +663,16 @@ Procedemos a comprimir y a reconstruir la imagen usada en el apartado anterior, 
 matriz_imagen <- perro_01
 dim <- dim(matriz_imagen)
 
-dwt_imagen <- aplic_dwt(matriz_imagen, "haar", 1)
-imagen_comp1 <- comprimir_imag(dwt_imagen)
-imagen_rec1 <- reconstruir_imag(imagen_comp1, dim)
+dwt_imagen <- aplic_dwt(matriz_imagen, FALSE, "haar", 1)
+imagen_comp1 <- comprimir_imag(dwt_imagen, FALSE)
+imagen_rec1 <- reconstruir_imag(imagen_comp1, FALSE, dim)
 q <- c(0.5, 0.7, 0.9)
-imagen_comp21 <- comprimir_imag(dwt_imagen, TRUE, q[1])
-imagen_rec21 <- reconstruir_imag(imagen_comp21, dim)
-imagen_comp22 <- comprimir_imag(dwt_imagen, TRUE, q[2])
-imagen_rec22 <- reconstruir_imag(imagen_comp22, dim)
-imagen_comp23 <- comprimir_imag(dwt_imagen, TRUE, q[3])
-imagen_rec23 <- reconstruir_imag(imagen_comp23, dim)
+imagen_comp21 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q[1])
+imagen_rec21 <- reconstruir_imag(imagen_comp21, FALSE, dim)
+imagen_comp22 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q[2])
+imagen_rec22 <- reconstruir_imag(imagen_comp22, FALSE, dim)
+imagen_comp23 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q[3])
+imagen_rec23 <- reconstruir_imag(imagen_comp23, FALSE, dim)
 ```
 
 Procedemos a mostrar la imagen original, la imagen comprimida con el filtro de paso bajo reconstruida, y la imagen comprimida con el filtro de paso bajo utilizando el umbral reconstruida.
@@ -681,22 +702,30 @@ grid.raster(imagen_rec23 / 255)
 ### b. Programar (o buscar) funciones (por ejemplo MSE) para medir el error entre la imagen original y la comprimida.
 
 ```{r 3_2_1_medidas_de_error, echo=TRUE}
-mse_imags <- function(imag1, imag2) {
-  return(mean(c(mean((imag1[,,1] - imag2[,,1])^2), mean((imag1[,,2] - imag2[,,2])^2), mean((imag1[,,3] - imag2[,,3])^2))))
+mse_imags <- function(imag1, imag2, bn = FALSE) {
+  if (bn) {
+    return(mean((imag1 - imag2)^2))
+  } else {
+    return(mean(c(mean((imag1[,,1] - imag2[,,1])^2), mean((imag1[,,2] - imag2[,,2])^2), mean((imag1[,,3] - imag2[,,3])^2))))
+  }
 }
 
-mae_imags <- function(imag1, imag2) {
-  return(mean(c(mean(abs(imag1[,,1] - imag2[,,1])), mean(abs(imag1[,,2] - imag2[,,2])), mean(abs(imag1[,,3] - imag2[,,3])))))
+mae_imags <- function(imag1, imag2, bn = FALSE) {
+  if (bn) {
+    return(mean(abs(imag1 - imag2)))
+  } else {
+    return(mean(c(mean(abs(imag1[,,1] - imag2[,,1])), mean(abs(imag1[,,2] - imag2[,,2])), mean(abs(imag1[,,3] - imag2[,,3])))))
+  }
 }
 
-psnr_imags <- function(imag1, imag2) {
-  mse <- mse_imags(imag1, imag2)
+psnr_imags <- function(imag1, imag2, bn = FALSE) {
+  mse <- mse_imags(imag1, imag2, bn)
   max_intensidad <- 255
   return(10 * log10((max_intensidad^2) / mse))
 }
 
-calc_errores <- function(imag1, imag2) {
-  return(c("MSE" = mse_imags(imag1, imag2), "MAE" = mae_imags(imag1, imag2), "PSNR" = psnr_imags(imag1, imag2)))
+calc_errores <- function(imag1, imag2, bn = FALSE) {
+  return(c("MSE" = mse_imags(imag1, imag2, bn), "MAE" = mae_imags(imag1, imag2, bn), "PSNR" = psnr_imags(imag1, imag2, bn)))
 }
 ```
 
@@ -708,18 +737,23 @@ PSNR: Proporción Máxima de Señal-Ruido (relación entre la máxima energía p
 
 ### c. Analizar y ordenar los algoritmos vistos hasta el momento en base a la relación calidad / nivel de compresión
 
-```{r 3_2_1_errores_en_ejemplo_3_1, echo=FALSE}
+```{r 3_3_1_errores_en_ejemplo_3_1, echo=FALSE}
 print("Error filtro paso bajo:")
 calc_errores(matriz_imagen, imagen_rec1)
-print("Error filtro paso bajo 2:")
-calc_errores(matriz_imagen, imagen_rec2)
+print("Error filtro paso bajo 2, q = 0.5:")
+calc_errores(matriz_imagen, imagen_rec21)
+print("Error filtro paso bajo 2, q = 0.7:")
+calc_errores(matriz_imagen, imagen_rec22)
+print("Error filtro paso bajo 2, q = 0.9:")
+calc_errores(matriz_imagen, imagen_rec23)
 print("Error filtro paso bajo por filas:")
 calc_errores(matriz_imagen, matriz_filas_colores)
 ```
 
 A vista de los resultados obtenidos, la compresión que usa el filtro de paso bajo con el umbral aplicado a la transformada Wavelet discreta en 2D es el que proporciona mayor calidad de imagen, seguido de la compresión que usa el filtro de paso bajo aplicado a la transformada Wavelet discreta en 2D.
 
-```{r}
+
+```{r 3_3_2_tabla_errores_imagenesRGB, echo=FALSE}
 imags <- list(arbol_01, arbol_03, perro_01, flor_01, flor_02, planta_01, pinas_01, gato_01)
 nombres <- c("arbol_01", "arbol_03", "perro_01", "flor_01", "flor_02", "planta_01", "pinas_01", "gato_01")
 cols <- c("Imagen", "Método", "MSE", "MAE", "PSNR")
@@ -730,12 +764,12 @@ for (i in 1:length(imags)) {
   imag <- imags[[i]]
   dim <- dim(imag)
   
-  dwt_imagen <- aplic_dwt(imag, "haar", 1)
-  imagen_comp1 <- comprimir_imag(dwt_imagen)
-  imagen_rec1 <- reconstruir_imag(imagen_comp1, dim)
+  dwt_imagen <- aplic_dwt(imag, FALSE, "haar", 1)
+  imagen_comp1 <- comprimir_imag(dwt_imagen, FALSE)
+  imagen_rec1 <- reconstruir_imag(imagen_comp1, FALSE, dim)
   
-  imagen_comp2 <- comprimir_imag(dwt_imagen, TRUE, q)
-  imagen_rec2 <- reconstruir_imag(imagen_comp2, dim)
+  imagen_comp2 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q)
+  imagen_rec2 <- reconstruir_imag(imagen_comp2, FALSE, dim)
   
   info1 <- calc_errores(imag, imagen_rec1)
   info2 <- calc_errores(imag, imagen_rec2)
@@ -748,6 +782,90 @@ for (i in 1:length(imags)) {
 colnames(tabla_info) <- cols
 ```
 
-```{r}
+```{r 3_3_3_ver_tabla_errores_imagenesRGB, echo=FALSE}
 print(tabla_info)
+```
+
+```{r 3_3_4_ejemplo_bn, echo=FALSE}
+matriz_imagen <- gato_02_filtro
+dim <- dim(matriz_imagen)
+
+dwt_imagen <- aplic_dwt(matriz_imagen, TRUE, "haar", 1)
+imagen_comp1 <- comprimir_imag(dwt_imagen, TRUE)
+imagen_rec1 <- reconstruir_imag(imagen_comp1, TRUE, dim)
+q <- c(0.5, 0.7, 0.9)
+imagen_comp21 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q[1])
+imagen_rec21 <- reconstruir_imag(imagen_comp21, TRUE, dim)
+imagen_comp22 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q[2])
+imagen_rec22 <- reconstruir_imag(imagen_comp22, TRUE, dim)
+imagen_comp23 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q[3])
+imagen_rec23 <- reconstruir_imag(imagen_comp23, TRUE, dim)
+```
+
+Procedemos a mostrar la imagen original, la imagen comprimida con el filtro de paso bajo reconstruida, y la imagen comprimida con el filtro de paso bajo utilizando el umbral reconstruida.
+
+```{r 3_3_5_ver_ejemplo_bn, echo=FALSE}
+grid.newpage()
+print("Imagen Original")
+grid.raster(matriz_imagen / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 1")
+grid.raster(imagen_rec1 / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 2, q = 0.5")
+grid.raster(imagen_rec21 / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 2, q = 0.7")
+grid.raster(imagen_rec22 / 255)
+
+grid.newpage()
+print("Reconstrucción usando el filtro 2, q = 0.9")
+grid.raster(imagen_rec23 / 255)
+```
+
+```{r 3_3_6_errores_ejemplo_bn}
+print("Error filtro paso bajo:")
+calc_errores(matriz_imagen, imagen_rec1, TRUE)
+print("Error filtro paso bajo 2, q = 0.5:")
+calc_errores(matriz_imagen, imagen_rec21, TRUE)
+print("Error filtro paso bajo 2, q = 0.7:")
+calc_errores(matriz_imagen, imagen_rec22, TRUE)
+print("Error filtro paso bajo 2, q = 0.9:")
+calc_errores(matriz_imagen, imagen_rec23, TRUE)
+```
+
+```{r 3_3_2_tabla_errores_imagenesBN, echo=FALSE}
+imags <- list(flor_04_filtro, flor_05_filtro, peluche_01_filtro, gato_02_filtro)
+nombres <- c("flor_04_filtro", "flor_05_filtro", "peluche_01_filtro", "gato_02_filtro")
+cols <- c("Imagen", "Método", "MSE", "MAE", "PSNR")
+tabla_info2 <- data.frame(matrix(ncol = length(cols), nrow = 0))
+q <- 0.7
+
+for (i in 1:length(imags)) {
+  imag <- imags[[i]]
+  dim <- dim(imag)
+  
+  dwt_imagen <- aplic_dwt(imag, TRUE, "haar", 1)
+  imagen_comp1 <- comprimir_imag(dwt_imagen, TRUE)
+  imagen_rec1 <- reconstruir_imag(imagen_comp1, TRUE, dim)
+  
+  imagen_comp2 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q)
+  imagen_rec2 <- reconstruir_imag(imagen_comp2, TRUE, dim)
+  
+  info1 <- calc_errores(imag, imagen_rec1, TRUE)
+  info2 <- calc_errores(imag, imagen_rec2, TRUE)
+  nom_info1 <- c(c(nombres[i], "Método 1"), info1)
+  nom_info2 <- c(c(nombres[i], "Método 2"), info2)
+  tabla_info2 <- rbind(tabla_info2, nom_info1)
+  tabla_info2 <- rbind(tabla_info2, nom_info2)
+}
+
+colnames(tabla_info2) <- cols
+```
+
+```{r 3_3_2_ver_tabla_errores_imagenesBN, echo=FALSE}
+print(tabla_info2)
 ```
