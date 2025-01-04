@@ -15,6 +15,7 @@ library(wavelets)
 library(waveslim)
 library(raster)
 library(grid)
+library(av)
 ```
 
 # 1. Importación de imágenes y preacondicionamiento.
@@ -868,4 +869,106 @@ colnames(tabla_info2) <- cols
 
 ```{r 3_3_2_ver_tabla_errores_imagenesBN, echo=FALSE}
 print(tabla_info2)
+```
+
+
+# 4. Importación de vídeos y preacondicionamiento
+
+En este apartado se repite el proceso anterior para vídeos, compuesto por una secuencia de imágenes y de un segmento de audio por igual. 
+
+### a. Importación de video
+
+```{r 4_1_1_importar_fichero_videos, echo=FALSE}
+# Directorio donde se encuentran los vídeos
+video_dir <- "videos"
+
+# Listar archivos de vídeo en el directorio
+video_files <- list.files(video_dir, pattern = "\\.mp4$", full.names = TRUE)
+
+# Mostrar los vídeos encontrados
+if (length(video_files) == 0) {
+  print("No se encontraron vídeos en el directorio.")
+} else {
+  print("Se encontraron los siguientes vídeos:")
+  print(video_files)
+}
+
+# Seleccionar el primer vídeo para procesar
+video_path <- video_files[1]
+```
+```{r 4_1_2_fun_extraccion_fotogramas, echo=FALSE}
+# Extraer fotogramas en memoria
+extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cuidado. Si se pone un valor muy alto, se pueden generar demasiados fotogramas y saturar la memoria.
+  # Extraer fotogramas como raw binary
+  frames_raw <- av::av_video_images(video = video_path, format = "png", fps = fps)
+  
+  # Convertir raw binary a imágenes magick
+  frames <- lapply(frames_raw, magick::image_read)
+  frames
+}
+
+```
+
+```{r 4_1_3_extraccion_fotogramas, echo=FALSE}
+# Probar con el primer vídeo
+frames_in_memory <- extract_frames_in_memory(video_path)
+
+# Mostrar número de fotogramas extraídos
+cat("Se extrajeron", length(frames_in_memory), "fotogramas del vídeo en memoria.\n")
+
+# Visualizar un ejemplo de fotograma
+print(frames_in_memory[[1]])
+
+```
+### b.  Transformar vídeos a matrices RGB: (Width X Height X 3 X #Fotogramas )
+
+```{r 4_2_1_fun_frames_a_matrices, echo=FALSE}
+# Convertir imágenes en memoria a matrices RGB
+convert_frames_to_rgb <- function(frames) {
+  rgb_matrices <- lapply(frames, function(img) {
+    raster_img <- as.raster(img)        # Convertir a raster
+    rgb_matrix <- as.matrix(raster_img) # Convertir a matriz RGB
+    rgb_matrix
+  })
+  rgb_matrices
+}
+
+
+```
+
+```{r 4_2_2_frames_a_matrices, echo=FALSE}
+# Convertir los fotogramas extraídos
+rgb_matrices_in_memory <- convert_frames_to_rgb(frames_in_memory)
+
+# Mostrar dimensiones de un fotograma
+cat("Dimensiones de un fotograma como matriz RGB:\n")
+print(dim(rgb_matrices_in_memory[[1]]))
+
+```
+
+
+### c.  Normalizar las matrices RGB 
+
+```{r 4_3_1_fun_normalizar_matrices, echo=FALSE}
+# Función para normalizar matrices RGB a un tamaño fijo
+normalize_matrices <- function(rgb_matrices, target_width = 128, target_height = 128) {
+  normalized_matrices <- lapply(rgb_matrices, function(matrix) {
+    img <- magick::image_read(as.raster(matrix)) # Convertir matriz a imagen
+    resized_img <- magick::image_resize(img, paste0(target_width, "x", target_height, "!"))
+    normalized_matrix <- as.matrix(as.raster(resized_img)) # Convertir de nuevo a matriz
+    normalized_matrix
+  })
+  normalized_matrices
+}
+
+```
+
+```{r 4_3_2_normalizar_matrices, echo=FALSE}
+# Normalizar los fotogramas extraídos
+normalized_matrices <- normalize_matrices(rgb_matrices_in_memory)
+
+# Mostrar dimensiones normalizadas
+cat("Dimensiones normalizadas de un fotograma:\n")
+print(dim(normalized_matrices[[1]]))
+
 ```
