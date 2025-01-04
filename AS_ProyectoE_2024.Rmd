@@ -879,13 +879,13 @@ En este apartado se repite el proceso anterior para vídeos, compuesto por una s
 ### a. Importación de video
 
 ```{r 4_1_1_importar_fichero_videos, echo=FALSE}
-# Directorio donde se encuentran los vídeos
+# Directorio objetivo
 video_dir <- "videos"
 
-# Listar archivos de vídeo en el directorio
+# Listar archivos 
 video_files <- list.files(video_dir, pattern = "\\.mp4$", full.names = TRUE)
 
-# Mostrar los vídeos encontrados
+# Mostrar nombres de los vídeos encontrados
 if (length(video_files) == 0) {
   print("No se encontraron vídeos en el directorio.")
 } else {
@@ -893,11 +893,11 @@ if (length(video_files) == 0) {
   print(video_files)
 }
 
-# Seleccionar el primer vídeo para procesar
+# Selección de video a procesar (en este caso el 1º)
 video_path <- video_files[1]
 ```
 ```{r 4_1_2_fun_extraccion_fotogramas, echo=FALSE}
-# Extraer fotogramas en memoria
+# Extraer fotogramas
 extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cuidado. Si se pone un valor muy alto, se pueden generar demasiados fotogramas y saturar la memoria.
   # Extraer fotogramas como raw binary
   frames_raw <- av::av_video_images(video = video_path, format = "png", fps = fps)
@@ -910,16 +910,42 @@ extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cui
 ```
 
 ```{r 4_1_3_extraccion_fotogramas, echo=FALSE}
-# Probar con el primer vídeo
-frames_in_memory <- extract_frames_in_memory(video_path)
+frames <- extract_frames_in_memory(video_path)
 
 # Mostrar número de fotogramas extraídos
-cat("Se extrajeron", length(frames_in_memory), "fotogramas del vídeo en memoria.\n")
+cat("Se extrajeron", length(frames), "fotogramas del vídeo (en memoria).\n")
 
 # Visualizar un ejemplo de fotograma
-print(frames_in_memory[[1]])
+print(frames[[1]])
 
 ```
+```{r 4_1_4_fun_extraccion_audio, echo=FALSE}
+# Función para extraer el audio de un video 
+extract_and_save_audio <- function(video_path) {
+  # Generar el nombre del archivo de audio basado en el nombre del video
+  audio_filename <- paste0(tools::file_path_sans_ext(basename(video_path)), ".mp3")
+  output_audio_path <- file.path("audiovideo", audio_filename)
+  
+  # Extraer y guardar el audio
+  av::av_audio_convert(video_path,output_audio_path)
+  
+  # Retornar la ruta del archivo de audio
+  return(output_audio_path)
+}
+
+```
+
+```{r 4_1_5_extraccion_audio, echo=FALSE}
+#Test de función
+audio <- extract_and_save_audio(video_path)
+
+# Mostrar detalles 
+cat("Audio extraído en memoria:\n")
+print(str(audio))
+
+```
+
+
 ### b.  Transformar vídeos a matrices RGB: (Width X Height X 3 X #Fotogramas )
 
 ```{r 4_2_1_fun_frames_a_matrices, echo=FALSE}
@@ -940,7 +966,7 @@ convert_frames_to_rgb <- function(frames) {
 # Convertir los fotogramas extraídos
 rgb_matrices_in_memory <- convert_frames_to_rgb(frames_in_memory)
 
-# Mostrar dimensiones de un fotograma
+# Ejemplo del resultado con un fotograma
 cat("Dimensiones de un fotograma como matriz RGB:\n")
 print(dim(rgb_matrices_in_memory[[1]]))
 
@@ -971,4 +997,7 @@ normalized_matrices <- normalize_matrices(rgb_matrices_in_memory)
 cat("Dimensiones normalizadas de un fotograma:\n")
 print(dim(normalized_matrices[[1]]))
 
+
+
 ```
+
