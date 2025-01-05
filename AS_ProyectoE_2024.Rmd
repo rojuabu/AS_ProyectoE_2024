@@ -312,7 +312,7 @@ copia_LH <- LH_detalles_horizontales(flor_05_filtro)
 # grid.newpage()
 # grid.raster(flor_05_filtro/255)
 
-grid.newpage() # Función necesaria para mostrar imágenes con grid.raster (usada a continuación)
+#grid.newpage() # Función necesaria para mostrar imágenes con grid.raster (usada a continuación)
 copia_LH <- (copia_LH - min(copia_LH))/(max(copia_LH) - min(copia_LH)) # Se normalizan los elementos para que se encuentren en el intervalo [0, 1]
 #grid.raster(copia_LH) # Mostramos la imagen. 
 
@@ -339,7 +339,7 @@ copia_HL <- HL_detalles_verticales(flor_05_filtro)
 # grid.newpage()
 # grid.raster(flor_05_filtro/255)
 
-grid.newpage()
+#grid.newpage()
 copia_HL <- (copia_HL - min(copia_HL))/(max(copia_HL) - min(copia_HL)) # Se normalizan los elementos para que se encuentren en el intervalo [0, 1]
 #grid.raster(copia_HL)
 ```
@@ -364,7 +364,7 @@ copia_LL <- LL_suavizado(flor_05_filtro)
 # grid.newpage()
 # grid.raster(flor_05_filtro/255)
 
-grid.newpage()
+#grid.newpage()
 #grid.raster(copia_LL/255) # Se divide entre 255 para que los elementos se encuentren en el intervalo [0, 1] (la matriz puede tener valores entre [0, 255], los transformamos al intervalo [0, 1] debido a que la función grid.raster trabaja con dicho intervalo)
 ```
 
@@ -391,7 +391,7 @@ copia_HH <- HH_detalles_diagonales(flor_05_filtro)
 # grid.newpage()
 # grid.raster(flor_05_filtro/255)
 
-grid.newpage()
+#grid.newpage()
 copia_HH <- (copia_HH - min(copia_HH))/(max(copia_HH) - min(copia_HH)) # Se normalizan los elementos para que se encuentren en el intervalo [0, 1]
 #grid.raster(copia_HH)
 ```
@@ -520,11 +520,11 @@ grid.raster(matriz_filas_colores/255) # Dado que la matriz matriz_filas_colores/
 
 Realizamos el algoritmo que concatena todas las filas de la matriz y, por tanto, realiza una única transformada wavelet
 ```{r 2_2_1_concatenar, echo=FALSE}
-dwt_concatenada_filas <- function(matriz_imagen_color){
+dwt_concatenada_filas <- function(matriz_imagen_color, filtro="haar", niveles=2){
   copia_concatenada <- matriz_imagen_color
   copia_concatenada <- as.numeric(t(copia_concatenada)) # Concatenamos todos los elementos de la matriz en una única fila (trasponemos la matriz porque R ordena los elementos por columnas en vez de por filas)
   
-  copia_concatenada_dwt <- wavelets::dwt(copia_concatenada, filter = "haar", n.levels=2)
+  copia_concatenada_dwt <- wavelets::dwt(copia_concatenada, filter = filtro, n.levels=niveles)
 
   nrow_f1 <- dim(copia_concatenada_dwt@W$W1)[1]
   ncol_f1 <- dim(copia_concatenada_dwt@W$W1)[2]
@@ -553,6 +553,26 @@ matriz_imagen <- perro_01
 matriz_concatenada_rojo <- dwt_concatenada_filas(perro_01[ , , 1])
 matriz_concatenada_verde <- dwt_concatenada_filas(perro_01[ , , 2])
 matriz_concatenada_azul <- dwt_concatenada_filas(perro_01[ , , 3])
+
+grid.newpage()
+grid.raster(perro_01/255)
+
+dimensiones <- c(dim(copia_filas_rojo), 3)
+
+matriz_concatenada_colores <- array(0, dim = dimensiones)
+matriz_concatenada_colores[ , , 1] <- matriz_concatenada_rojo
+matriz_concatenada_colores[ , , 2] <- matriz_concatenada_verde
+matriz_concatenada_colores[ , , 3] <- matriz_concatenada_azul
+
+grid.newpage()
+grid.raster(matriz_concatenada_colores/255)
+```
+
+```{r 2_2_2_aplicar_a_concatenar_correccion=, echo=FALSE}
+matriz_imagen <- perro_01
+
+matriz_concatenada <- dwt_concatenada_filas(perro_01)
+
 
 grid.newpage()
 grid.raster(perro_01/255)
@@ -896,6 +916,7 @@ if (length(video_files) == 0) {
 # Selección de video a procesar (en este caso el 1º)
 video_path <- video_files[1]
 ```
+
 ```{r 4_1_2_fun_extraccion_fotogramas, echo=FALSE}
 # Extraer fotogramas
 extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cuidado. Si se pone un valor muy alto, se pueden generar demasiados fotogramas y saturar la memoria.
@@ -952,10 +973,22 @@ print(str(audio))
 # Convertir imágenes en memoria a matrices RGB
 convert_frames_to_rgb <- function(frames) {
   rgb_matrices <- lapply(frames, function(img) {
-    raster_img <- as.raster(img)        # Convertir a raster
-    rgb_matrix <- as.matrix(raster_img) # Convertir a matriz RGB
-    rgb_matrix
-  })
+    
+    # Convertir la imagen a un array de píxeles
+    img_array <- as.integer(image_data(img))
+    
+    # Obtener las dimensiones del array
+    dims <- dim(img_array)
+    
+    # Verificar que la imagen tiene 3 canales
+    if (length(dims) != 3 || dims[3] != 3) {
+      stop("La imagen debe ser RGB con exactamente 3 canales (R, G, B).")
+    }
+    
+    # Normalizar los valores de 0-255 a 0-1
+    rgb_matrix <- img_array / 255
+    return(rgb_matrix)
+    })
   rgb_matrices
 }
 
@@ -964,7 +997,7 @@ convert_frames_to_rgb <- function(frames) {
 
 ```{r 4_2_2_frames_a_matrices, echo=FALSE}
 # Convertir los fotogramas extraídos
-rgb_matrices_in_memory <- convert_frames_to_rgb(frames_in_memory)
+rgb_matrices_in_memory <- convert_frames_to_rgb(frames)
 
 # Ejemplo del resultado con un fotograma
 cat("Dimensiones de un fotograma como matriz RGB:\n")
@@ -977,17 +1010,58 @@ print(dim(rgb_matrices_in_memory[[1]]))
 
 ```{r 4_3_1_fun_normalizar_matrices, echo=FALSE}
 # Función para normalizar matrices RGB a un tamaño fijo
-normalize_matrices <- function(rgb_matrices, target_width = 128, target_height = 128) {
+
+normalize_matrices_no_funciona <- function(rgb_matrices, target_width = 128, target_height = 128) {
   normalized_matrices <- lapply(rgb_matrices, function(matrix) {
     img <- magick::image_read(as.raster(matrix)) # Convertir matriz a imagen
     resized_img <- magick::image_resize(img, paste0(target_width, "x", target_height, "!"))
-    normalized_matrix <- as.matrix(as.raster(resized_img)) # Convertir de nuevo a matriz
+    normalized_matrix <- as.integer(image_data(resized_img)) # Convertir de nuevo a matriz
     normalized_matrix
   })
   normalized_matrices
 }
 
 ```
+
+```{r 4_3_1_fun_normalizar_matrices_v2, echo=FALSE}
+normalize_matrices <- function(rgb_matrices, target_width = 256, target_height = 256) {
+  # Verificar que la librería 'magick' está cargada
+  if (!requireNamespace("magick", quietly = TRUE)) {
+    stop("El paquete 'magick' es necesario. Instálalo con install.packages('magick').")
+  }
+  
+  # Normalizar cada matriz RGB
+  normalized_matrices <- lapply(rgb_matrices, function(matrix) {
+    # Verificar que la matriz es una matriz RGB válida
+    if (length(dim(matrix)) != 3 || dim(matrix)[3] != 3) {
+      stop("Cada elemento de 'rgb_matrices' debe ser una matriz tridimensional con la última dimensión igual a 3 (R, G, B).")
+    }
+    
+    # Convertir la matriz a un objeto magick
+    if (max(matrix) <= 1) {
+      # Escalar a rango 0-255 si los valores están en 0-1
+      matrix <- matrix * 255
+    }
+    img <- magick::image_read(as.raster(matrix / 255)) # Crear imagen magick
+    
+    # Redimensionar la imagen al tamaño objetivo
+    resized_img <- magick::image_resize(img, paste0(target_width, "x", target_height, "!"))
+    
+    # Convertir de nuevo la imagen a una matriz RGB normalizada en rango [0, 1]
+    resized_matrix <- as.integer(magick::image_data(resized_img)) / 255
+    
+    # Eliminar el canal alfa si existe (reduciendo la matriz a 3 canales: R, G, B)
+    if (dim(resized_matrix)[3] == 4) {
+      resized_matrix <- resized_matrix[, , 1:3]
+    }
+    
+    return(resized_matrix)
+  })
+  
+  return(normalized_matrices)
+}
+```
+
 
 ```{r 4_3_2_normalizar_matrices, echo=FALSE}
 # Normalizar los fotogramas extraídos
@@ -1000,4 +1074,102 @@ print(dim(normalized_matrices[[1]]))
 
 
 ```
+```{r 4_3_3_visualizar_matrices_RGB_no_funciona, echo=FALSE, include=FALSE}
+
+visualizar_imagen_RGB_no_funciona <- function(matriz_RGB) {
+  
+  # Verificar que la matriz tiene la forma correcta
+  if (length(dim(matriz_RGB)) != 3 || dim(matriz_RGB)[3] != 3) {
+    stop("La matriz debe tener tres dimensiones con la última dimensión de tamaño 3 (R, G, B).")
+  }
+  
+  # Asegurarse de que los valores están en el rango [0, 1]
+  if (max(matriz_RGB) > 1 || min(matriz_RGB) < 0) {
+    warning("Los valores de la matriz RGB no están en el rango [0, 1]. Normalizando automáticamente.")
+    matriz_RGB <- matriz_RGB / max(matriz_RGB)
+  }
+  
+  # Convertir la matriz RGB a un objeto raster
+  img <- as.raster(matriz_RGB)
+  
+  # Visualizar la imagen
+  grid::grid.raster(img)
+}
+
+visualizar_imagen_RGB(normalized_matrices[[1]])
+
+```
+
+```{r 4_3_4_visualizar_matrices_RGB, echo=FALSE}
+visualizar_imagen_RGB <- function(matriz_RGB) {
+  # Verificar que la matriz tiene tres dimensiones con la última dimensión de tamaño 3
+  if (length(dim(matriz_RGB)) != 3 || dim(matriz_RGB)[3] != 3) {
+      stop("La matriz debe tener tres dimensiones con la última dimensión de tamaño 3 (R, G, B).")
+  }
+  
+  # Asegurarse de que los valores están en el rango [0, 1]
+  if (max(matriz_RGB) > 1 || min(matriz_RGB) < 0) {
+    warning("Los valores de la matriz RGB no están en el rango [0, 1]. Normalizando automáticamente.")
+    matriz_RGB <- matriz_RGB / max(matriz_RGB)
+  }
+  
+  # Convertir la matriz a un objeto de imagen magick
+  img <- magick::image_read(as.raster(matriz_RGB))
+  
+  # Mostrar la imagen
+  print(img)
+}
+
+visualizar_imagen_RGB(normalized_matrices[[1]])
+```
+
+## 5 Aplicación de Transformadas wavelet:
+
+```{r 5_1_1_transformada_wavelet_2d_por_fotograma }
+
+aplic_dwt2d_video <- function(video_frames, bn, wf, nivel){
+  dwt_frames <- c()
+  for (i in 1:length(video_frames)){
+    dwt_frames <- c(dwt_frames, list( aplic_dwt( imag = video_frames[[i]] ,bn=bn,wf=wf,nivel=nivel)) )
+  }
+  return(dwt_frames)
+}
+  
+dwt2d_videos <- c()
+
+for (names in video_files){  #Iteramos sobre cada video
+    aux_frames <- extract_frames_in_memory(names, fps = 1)
+    aux_rgb <- convert_frames_to_rgb(aux_frames)
+    aux_norm <- normalize_matrices(aux_rgb)
+    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( aux_norm, bn=FALSE, wf = "haar", nivel=2) ) )
+}
+```
+La variable dwt_videos es una lista que contiene:
+
+  - Una lista por cada vídeo que contiene     (dwt_videos[[video_i]]):
+  - Una lista por cada fotograma del vídeo que contiene (dwt_videos[[video_i]][[fotograma_j]]):
+  - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
+
+
+```{r 5_1_1_transformada_wavelet_concatenado }
+
+aplic_dwt_concat_video <- function(video_frames, bn, wf, nivel){
+  dwt_frames <- c()
+  for (i in 1:length(video_frames)){
+    dwt_frames <- c(dwt_frames, list( aplic_dwt( imag = video_frames[[i]] ,bn=bn,wf=wf,nivel=nivel)) )
+  }
+  return(dwt_frames)
+}
+  
+dwt2d_videos <- c()
+
+for (names in video_files){  #Iteramos sobre cada video
+    aux_frames <- extract_frames_in_memory(names, fps = 1)
+    aux_rgb <- convert_frames_to_rgb(aux_frames)
+    aux_norm <- normalize_matrices(aux_rgb)
+    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt_video( aux_norm, bn=FALSE, wf = "haar", nivel=2) ) )
+}
+```
+
+
 
