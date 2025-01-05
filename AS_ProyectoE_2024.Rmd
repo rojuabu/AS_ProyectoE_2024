@@ -120,19 +120,20 @@ Nota: aquí se han concatenado los tres canales RGB, por lo que reconstruir la i
 
 ```{r 1_2_2_wavelet_1d_concatenado, echo=FALSE}
 # Función para aplicar DWT en una dimensión a una imagen
-aplicar_dwt_vector <- function(imagen, filtro_wavelet = "haar") {
+aplicar_dwt_vector <- function(imagen, bn = FALSE, filtro_wavelet = "haar", nivel = 2) {
   # Convertir cada canal de la imagen en un vector unidimensional
   vector_R <- as.numeric(imagen[, , 1])
   vector_G <- as.numeric(imagen[, , 2])
   vector_B <- as.numeric(imagen[, , 3])
   
   # Concatenar los vectores de cada canal en un solo vector unidimensional
-  vector_concatenado <- c(vector_R, vector_G, vector_B)
   
   # Aplicar la transformada wavelet al vector concatenado
-  resultado_wavelet <- wavelets::dwt(vector_concatenado, filter = filtro_wavelet)
+  resultado_wavelet_R <- wavelets::dwt(vector_R, filter = filtro_wavelet, n.levels = nivel)
+  resultado_wavelet_G <- wavelets::dwt(vector_G, filter = filtro_wavelet, n.levels = nivel)
+  resultado_wavelet_B <- wavelets::dwt(vector_B, filter = filtro_wavelet, n.levels = nivel)
   
-  return(resultado_wavelet)
+  return(list(  resultado_wavelet_R , resultado_wavelet_R , resultado_wavelet_R))
 }
 
 # Aplicar la función a la imagen
@@ -1144,32 +1145,38 @@ for (names in video_files){  #Iteramos sobre cada video
     dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( aux_norm, bn=FALSE, wf = "haar", nivel=2) ) )
 }
 ```
-La variable dwt_videos es una lista que contiene:
+La variable dwt2d_videos es una lista que contiene:
 
-  - Una lista por cada vídeo que contiene     (dwt_videos[[video_i]]):
-  - Una lista por cada fotograma del vídeo que contiene (dwt_videos[[video_i]][[fotograma_j]]):
+  - Una lista por cada vídeo que contiene     (dwt2d_videos[[video_i]]):
+  - Una lista por cada fotograma del vídeo que contiene (dwt2d_videos[[video_i]][[fotograma_j]]):
   - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
 
 
-```{r 5_1_1_transformada_wavelet_concatenado }
+```{r 5_1_2_transformada_wavelet_concatenado }
 
-aplic_dwt_concat_video <- function(video_frames, bn, wf, nivel){
+aplic_dwt_concat_video <- function(video_frames, bn, filtro, nivel){
   dwt_frames <- c()
   for (i in 1:length(video_frames)){
-    dwt_frames <- c(dwt_frames, list( aplic_dwt( imag = video_frames[[i]] ,bn=bn,wf=wf,nivel=nivel)) )
+    dwt_frames <- c(dwt_frames, list( aplicar_dwt_vector( imag = video_frames[[i]] ,bn=bn,filtro,nivel=nivel)) )
   }
   return(dwt_frames)
 }
   
-dwt2d_videos <- c()
+dwt_concat_videos <- c()
 
 for (names in video_files){  #Iteramos sobre cada video
     aux_frames <- extract_frames_in_memory(names, fps = 1)
     aux_rgb <- convert_frames_to_rgb(aux_frames)
     aux_norm <- normalize_matrices(aux_rgb)
-    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt_video( aux_norm, bn=FALSE, wf = "haar", nivel=2) ) )
+    dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( aux_norm, bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
+La estructura de la variable dwt_concat_videos es similar a la anterior:
+
+  - Una lista por cada vídeo que contiene     (dwt_concat_videos[[video_i]]):
+  - Una lista por cada fotograma del vídeo que contiene (dwt_concat_videos[[video_i]][[fotograma_j]]):
+  - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
+
 
 
 
