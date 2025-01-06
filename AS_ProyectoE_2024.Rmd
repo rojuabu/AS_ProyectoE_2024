@@ -572,7 +572,9 @@ grid.raster(matriz_concatenada_colores/255)
 ```{r 2_2_2_aplicar_a_concatenar_correccion=, echo=FALSE}
 matriz_imagen <- perro_01
 
-matriz_concatenada <- dwt_concatenada_filas(perro_01)
+matriz_concatenada_rojo <- dwt_concatenada_filas(perro_01[,,1])
+matriz_concatenada_verde <- dwt_concatenada_filas(perro_01[,,2])
+matriz_concatenada_azul <- dwt_concatenada_filas(perro_01[,,3])
 
 
 grid.newpage()
@@ -1097,7 +1099,7 @@ visualizar_imagen_RGB_no_funciona <- function(matriz_RGB) {
   grid::grid.raster(img)
 }
 
-visualizar_imagen_RGB(normalized_matrices[[1]])
+#visualizar_imagen_RGB(normalized_matrices[[1]])
 
 ```
 
@@ -1135,24 +1137,6 @@ aplic_dwt2d_video <- function(video_frames, bn, wf, nivel){
   }
   return(dwt_frames)
 }
-  
-dwt2d_videos <- c()
-
-for (names in video_files){  #Iteramos sobre cada video
-    aux_frames <- extract_frames_in_memory(names, fps = 1)
-    aux_rgb <- convert_frames_to_rgb(aux_frames)
-    aux_norm <- normalize_matrices(aux_rgb)
-    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( aux_norm, bn=FALSE, wf = "haar", nivel=2) ) )
-}
-```
-La variable dwt2d_videos es una lista que contiene:
-
-  - Una lista por cada vídeo que contiene     (dwt2d_videos[[video_i]]):
-  - Una lista por cada fotograma del vídeo que contiene (dwt2d_videos[[video_i]][[fotograma_j]]):
-  - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
-
-
-```{r 5_1_2_transformada_wavelet_concatenado }
 
 aplic_dwt_concat_video <- function(video_frames, bn, filtro, nivel){
   dwt_frames <- c()
@@ -1162,15 +1146,24 @@ aplic_dwt_concat_video <- function(video_frames, bn, filtro, nivel){
   return(dwt_frames)
 }
   
-dwt_concat_videos <- c()
+dwt2d_videos <- c()
+dwt_concat_videos<- c()
 
 for (names in video_files){  #Iteramos sobre cada video
     aux_frames <- extract_frames_in_memory(names, fps = 1)
     aux_rgb <- convert_frames_to_rgb(aux_frames)
     aux_norm <- normalize_matrices(aux_rgb)
+    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( aux_norm, bn=FALSE, wf = "haar", nivel=2) ) )
     dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( aux_norm, bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
+La variable dwt2d_videos es una lista que contiene:
+
+  - Una lista por cada vídeo que contiene     (dwt2d_videos[[video_i]]):
+  - Una lista por cada fotograma del vídeo que contiene (dwt2d_videos[[video_i]][[fotograma_j]]):
+  - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
+
+
 La estructura de la variable dwt_concat_videos es similar a la anterior:
 
   - Una lista por cada vídeo que contiene     (dwt_concat_videos[[video_i]]):
@@ -1178,5 +1171,32 @@ La estructura de la variable dwt_concat_videos es similar a la anterior:
   - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
 
 
+Una cosa que puede ser especialmente útil para algoritmos de compresión aplicados a vídeos más o menos "estáticos", es decir, vídeos dónde un porcentaje elevado de píxeles no varía o varía muy poco, es aplicar la compresión al vector transición entre dos fotogramas, en vez de al fotograma en sí.
 
+Concretamente, el algoritmo reconstruiría el vídeo a partir del primer fotograma (comprimido) y de los vectores transición (también comprimidos). 
+Con este objetivo preparamos el cálculo de la transformada wavelet de las transiciones.
 
+```{r 5_1_4_transformada_wavelet_2d_y_concat_transicion, echo=FALSE }
+
+dwt_trans_2d_videos <- c()
+dwt_trans_concat_videos <- c()
+
+for (names in video_files){  #Iteramos sobre cada video
+    aux_frames <- extract_frames_in_memory(names, fps = 1)
+    aux_rgb <- convert_frames_to_rgb(aux_frames)
+    aux_norm <- normalize_matrices(aux_rgb)
+    aux_trans <-  aux_norm[1] 
+    for (i in 1:(length(aux_frames) -1 )){
+      aux_trans <- c( aux_trans , list( aux_norm[[i+1]] - aux_norm[[i]] )  )
+    }
+    dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
+    dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
+}
+```
+
+Ahora las variables dwt_trans_2d_videos y dwt_trans_concat_videos guardan:
+
+  - Una lista por cada vídeo que contiene     (dwt_concat_videos[[video_i]]):
+  - Una lista con longitud el número de fotogramas del vídeo que contiene (dwt_concat_videos[[video_i]][[j]]):
+    - Si j=1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del fotograma 1
+    - Si j>1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del vector transición del fotograma j-1 al j
