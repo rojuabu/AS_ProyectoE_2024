@@ -1167,7 +1167,6 @@ La variable dwt2d_videos es una lista que contiene:
   - Una lista por cada fotograma del vídeo que contiene (dwt2d_videos[[video_i]][[fotograma_j]]):
   - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
 
-
 La estructura de la variable dwt_concat_videos es similar a la anterior:
 
   - Una lista por cada vídeo que contiene     (dwt_concat_videos[[video_i]]):
@@ -1181,7 +1180,6 @@ Concretamente, el algoritmo reconstruiría el vídeo a partir del primer fotogra
 Con este objetivo preparamos el cálculo de la transformada wavelet de las transiciones.
 
 ```{r 5_1_4_transformada_wavelet_2d_y_concat_transicion, echo=FALSE }
-
 dwt_trans_2d_videos <- c()
 dwt_trans_concat_videos <- c()
 
@@ -1206,6 +1204,38 @@ Ahora las variables dwt_trans_2d_videos y dwt_trans_concat_videos guardan:
     - Si j>1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del vector transición del fotograma j-1 al j
 
 ## 6 Algoritmos de compresión:
-### a.  Generar algoritmos de reconstrucción de vídeo a partir de los coeficientes wavelets
-### b.  Medición del error entre el video original y el comprimido
-### c.  Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
+
+Una vez hemos encontrado los coeficientes wavelet de nuestros vídeos, tenemos que reconstruirlos a partir de estos coeficientes, de manera que permitan una compresión de información respecto del vídeo original, o eliminen artefactos no deseados como el ruido.
+
+Una de las maneras más fáciles de reconstruir estos vídeos, sería aplicando el proceso de reconstrucción por coeficientes wavelets visto en el apartado 3 a cada fotograma del vídeo. Si bien este método es funcional, no utiliza en ningún momento las propiedades de los vídeos, y reduce estos a imágenes independientes.
+
+Así, si queremos crear métodos de reconstrucción realmente interesantes, debemos aprovechar las propiedades de los vídeos como fotogramas consecutivos.
+
+### a. Generar algoritmos de reconstrucción de vídeo a partir de los coeficientes wavelets.
+
+Nuestro primer algoritmo de reconstrucción aplicará una transformada inversa de wavelet para recuperar el primer fotograma original, y después aplicara la misma transformación inversa a las diferencias entre fotogramas.
+
+```{r 6_a_reconstruccion_directa, echo=FALSE}
+idwt.2d(dwt2d_videos[[1]][[1]][[1]])
+visualizar_imagen_RGB(idwt.2d(dwt2d_videos[[1]][[1]][[1]]))
+```
+
+### b. Medición del error entre el video original y el comprimido.
+
+```{r 6_b_medición_error, echo=FALSE}
+
+```
+
+```{r 6_b_comparacion_errores, echo=FALSE}
+
+```
+
+### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
+
+```{r 6_c_medición_compresion, echo=FALSE}
+
+```
+
+```{r 6_c_comparacion_compresion, echo=FALSE}
+
+```
