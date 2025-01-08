@@ -1,6 +1,10 @@
 ---
 title: "AS_ProyectoE_2024"
-author: "Marcos, Pablo Selma, Víctor Mateu"
+author:
+  - name: Marcos
+  - name: Pablo Selma
+  - name: Víctor Mateu
+  - name: Marc Velasco Mateu
 date: "2024-12-24"
 output: html_document
 ---
@@ -1189,7 +1193,7 @@ for (names in video_files){  #Iteramos sobre cada video
     for (i in 1:(length(aux_frames) -1 )){
       aux_trans <- c( aux_trans , list( aux_norm[[i+1]] - aux_norm[[i]] )  )
     }
-    dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
+    dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, wf = "haar", nivel=2) ) )
     dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
@@ -1200,3 +1204,8 @@ Ahora las variables dwt_trans_2d_videos y dwt_trans_concat_videos guardan:
   - Una lista con longitud el número de fotogramas del vídeo que contiene (dwt_concat_videos[[video_i]][[j]]):
     - Si j=1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del fotograma 1
     - Si j>1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del vector transición del fotograma j-1 al j
+
+## 6 Algoritmos de compresión:
+### a.  Generar algoritmos de reconstrucción de vídeo a partir de los coeficientes wavelets
+### b.  Medición del error entre el video original y el comprimido
+### c.  Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
