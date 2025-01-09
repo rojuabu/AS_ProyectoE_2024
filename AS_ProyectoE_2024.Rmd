@@ -1109,7 +1109,7 @@ for (names in video_files){  #Iteramos sobre cada video
     aux_frames <- extract_frames_in_memory(names, fps = 1)
     aux_rgb <- convert_frames_to_rgb(aux_frames)
     aux_norm <- normalize_matrices(aux_rgb)
-    videos_matrix_norm <- c( videos_matrix_norm , aux_norm)
+    videos_matrix_norm <- c( videos_matrix_norm , list(aux_norm) )
 }
 ```
 
@@ -1163,11 +1163,11 @@ Con este objetivo preparamos el cálculo de la transformada wavelet de las trans
 dwt_trans_2d_videos <- c()
 dwt_trans_concat_videos <- c()
 
-for (i in 1:length(videos_matrix_norm)){  #Iteramos sobre cada video
+for (j in 1:length(videos_matrix_norm)){  #Iteramos sobre cada video
     
-    aux_trans <-  videos_matrix_norm[[1]][1] 
+    aux_trans <-  list( videos_matrix_norm[[j]][[1]] )
     for (i in 1:(length(aux_frames) -1 )){
-      aux_trans <- c( aux_trans , list( videos_matrix_norm[[1]][[i+1]] - videos_matrix_norm[[1]][[i]] )  )
+      aux_trans <- c( aux_trans , list( videos_matrix_norm[[j]][[i+1]] - videos_matrix_norm[[j]][[i]] )  )
     }
     dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, wf = "haar", nivel=2) ) )
     dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
@@ -1385,10 +1385,8 @@ split_frames <- function(concatenated_image, frame_height=256, frame_width=256) 
 ```
 
 ```{r concatenate_and_split_pruebas_1, echo=FALSE, include=FALSE}
-aux_frames <- extract_frames_in_memory(video_files[2], fps = 1)
-aux_rgb <- convert_frames_to_rgb(aux_frames)
-aux_norm <- normalize_matrices(aux_rgb)
-concatenated_frames <- concatenate_frames(aux_norm)
+
+concatenated_frames <- concatenate_frames(videos_matrix_norm[[1]])
 visualizar_imagen_RGB(concatenated_frames)
 
 ```
@@ -1424,12 +1422,12 @@ compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nive
   concat_frames_comprimida_2d   <- filtrar_dwt(dwt2d_frames_concat, bn = bn, filtroQ = filtroQ, q = q)
   
   concat_frames_reconstruida2d <- reconstruir_imag(concat_frames_comprimida_2d, bn=FALSE, dim= dim(concatenated_frames))
-  concat_frames_concat_filas_1d   <- comp_concatenada_filas_RGB(concatenated_frames, filtro = "haar", niveles=niveles)
+  concat_frames_concat_filas_1d   <- comp_concatenada_filas_RGB(concatenated_frames, filtro = "haar", niveles=nivel)
   
   splitted_frames_comp2d <- split_frames(concat_frames_reconstruida2d, frame_height= N, frame_width= M)
-  splitted_frames_concat_filas_1d <- split_frames(cconcat_frames_concat_filas_1d, frame_height= N, frame_width= M)
+  splitted_frames_concat_filas_1d <- split_frames(concat_frames_concat_filas_1d, frame_height= N, frame_width= M)
   
-  return( list( splitted_frames_comp , splitted_frames_concat_filas_1d) )
+  return( list( splitted_frames_comp2d , splitted_frames_concat_filas_1d) )
 }
 ```
 
@@ -1446,13 +1444,12 @@ rotate_frames_90 <- function(frames) {
 ```
 
 ```{r comprimir_video_frames_concatenados_prueba_1}
-aux_frames <- extract_frames_in_memory(video_files[2], fps = 1)
-aux_rgb <- convert_frames_to_rgb(aux_frames)
-aux_norm <- normalize_matrices(aux_rgb)
-comprimido<-compress_video_concat_frames(aux_norm)
-visualizar_imagen_RGB(comprimido[[1]][[1]])
-comprimido_rotado<- rotate_frames_90( rotate_frames_90( rotate_frames_90( comprimido) ) )
-visualizar_imagen_RGB(comprimido_rotado[[1]])
+
+comprimido<-compress_video_concat_frames(videos_matrix_norm[[1]] )
+
+comprimido_concat_2d <- comprimido[[1]]  #Comprime la cuadrícula de fotogramas mediante dwt.2d
+comprimido_concat_1d <- comprimido[[2]]  #Comprime la cuadrícula de fotogrames mediante la dwt 1d al vector que concatena los píxeles
+
 ```
 
 ### b. Medición del error entre el video original y el comprimido.
@@ -1494,6 +1491,10 @@ print("Método: Fotograma a fotograma con filtro de paso bajo 2.")
 error_compresion(normalized_matrices,video_paso_bajo_2)
 print("Método: Matrices transicionales con filtro de paso bajo 2.")
 error_compresion(normalized_matrices,video_paso_bajo_2_trans)
+print("Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.")
+error_compresion(normalized_matrices,comprimido_concat_2d)
+print("Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado")
+error_compresion(normalized_matrices,comprimido_concat_1d)
 ```
 
 ### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
