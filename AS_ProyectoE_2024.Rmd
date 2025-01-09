@@ -934,7 +934,6 @@ extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cui
   frames <- lapply(frames_raw, magick::image_read)
   frames
 }
-
 ```
 
 ```{r 4_1_3_extraccion_fotogramas, echo=FALSE}
@@ -1011,7 +1010,6 @@ cat("Dimensiones de un fotograma como matriz RGB:\n")
 print(dim(rgb_matrices_in_memory[[1]]))
 
 ```
-
 
 ### c.  Normalizar las matrices RGB 
 
@@ -1103,7 +1101,7 @@ visualizar_imagen_RGB_no_funciona <- function(matriz_RGB) {
   grid::grid.raster(img)
 }
 
-#visualizar_imagen_RGB(normalized_matrices[[1]])
+visualizar_imagen_RGB(normalized_matrices[[1]])
 
 ```
 
@@ -1316,12 +1314,43 @@ video_paso_bajo_2_trans <- rec_vid_paso_bajo2(dwt_trans_2d_videos[[1]], trans = 
 
 ### b. Medición del error entre el video original y el comprimido.
 
-```{r 6_b_medición_error, echo=FALSE}
+La manera más clara de medir el error entre un vídeo y su compresión, consiste en calcular el vídeo diferencia entre ambos, sumar todos los valores de todos los fotogramas con valor absoluto, y normalizar dependiendo de la resolución y el número de fotogramas.
 
+Sin embargo, dado que estamos utilizando métodos transicionales de compresión, es posible que el error se vaya acumulando de un fotograma a otro, resultando en un mayor error en el último fotograma.
+
+Así pues, nuestra medición del error tendrá dos partes, una donde se calculara la diferencia general entre el vídeo original y el comprimido, y otra donde se vea el error presente en el último fotograma.
+
+```{r 6_b_funcion_medición_error, echo=FALSE}
+mse_vid <- function(vid1, vid2) {
+  error <- 0
+  for (i in 1:length(vid1)) {
+    error <- error + sqrt(mse_imags(vid1[[i]], vid2[[i]], bn = FALSE))
+  }
+  error <- error/(length(vid1))
+  return(error)
+}
+
+error_compresion <- function(vid1, vid2) {
+  cat("El error cuadrático entre los dos videos es",mse_vid(vid1, vid2),"\n")
+  cat("El error cuadrático en el último fotograma es",sqrt(mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE)),"\n")
+}
 ```
 
-```{r 6_b_comparacion_errores, echo=FALSE}
+Veamos ahora el error que se obtiene al aplicar cada método de compresión.
 
+```{r 6_b_comparacion_errores, echo=FALSE}
+print("Método: Fotograma a fotograma sin compresión.")
+error_compresion(normalized_matrices,video_base)
+print("Método: Matrices transicionales sin compresión.")
+error_compresion(normalized_matrices,video_base_trans)
+print("Método: Fotograma a fotograma con filtro de paso bajo.")
+error_compresion(normalized_matrices,video_paso_bajo)
+print("Método: Matrices transicionales con filtro de paso bajo.")
+error_compresion(normalized_matrices,video_paso_bajo_trans)
+print("Método: Fotograma a fotograma con filtro de paso bajo 2.")
+error_compresion(normalized_matrices,video_paso_bajo_2)
+print("Método: Matrices transicionales con filtro de paso bajo 2.")
+error_compresion(normalized_matrices,video_paso_bajo_2_trans)
 ```
 
 ### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
