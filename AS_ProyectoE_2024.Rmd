@@ -534,8 +534,8 @@ grid.raster(matriz_filas_colores/255) # Dado que la matriz matriz_filas_colores/
 
 Realizamos el algoritmo que concatena todas las filas de la matriz y, por tanto, realiza una única transformada wavelet
 ```{r 2_2_1_concatenar, echo=FALSE}
-dwt_concatenada_filas <- function(matriz_imagen_color, filtro="haar", niveles=2){
-  copia_concatenada <- matriz_imagen_color
+comp_concatenada_filas <- function(matriz_imagen, filtro="haar", niveles=2){
+  copia_concatenada <- matriz_imagen
   copia_concatenada <- as.numeric(t(copia_concatenada)) # Concatenamos todos los elementos de la matriz en una única fila (trasponemos la matriz porque R ordena los elementos por columnas en vez de por filas)
   
   copia_concatenada_dwt <- wavelets::dwt(copia_concatenada, filter = filtro, n.levels=niveles)
@@ -552,31 +552,36 @@ dwt_concatenada_filas <- function(matriz_imagen_color, filtro="haar", niveles=2)
   copia_concatenada_2 <- wavelets::idwt(copia_concatenada_dwt)
   
   # Deshacemos el cambio de dimensiones para volver a tener una matriz con las dimensiones que poseía al inicio 
-  copia_concatenada_2 <- matrix(copia_concatenada_2, nrow=dim(matriz_imagen_color)[1],
-                                ncol=dim(matriz_imagen_color)[2], byrow=TRUE)
+  copia_concatenada_2 <- matrix(copia_concatenada_2, nrow=dim(matriz_imagen)[1],
+                                ncol=dim(matriz_imagen)[2], byrow=TRUE)
   
   return(copia_concatenada_2)
+}
+
+comp_concatenada_filas_RGB <- function(matriz_imagen, filtro="haar", niveles=2){
+  R_channel <- comp_concatenada_filas(matriz_imagen[,,1], filtro = filtro, niveles = niveles) 
+  B_channel <- comp_concatenada_filas(matriz_imagen[,,2], filtro = filtro, niveles = niveles) 
+  G_channel <- comp_concatenada_filas(matriz_imagen[,,3], filtro = filtro, niveles = niveles)
+  
+  matrix_RGB <-  array(0, dim= c( nrow(R_channel) , ncol(R_channel), 3 )  )
+  matrix_RGB[,,1]<- R_channel
+  matrix_RGB[,,2]<- B_channel
+  matrix_RGB[,,3]<- G_channel
+
+  return(matrix_RGB)
 }
 ```
 
 
 Aplicamos el algoritmo a los tres canales de color de nuestra imagen
 ```{r 2_2_2_aplicar_a_concatenar, echo=FALSE}
-matriz_imagen <- perro_01
-
-matriz_concatenada_rojo <- dwt_concatenada_filas(perro_01[ , , 1])
-matriz_concatenada_verde <- dwt_concatenada_filas(perro_01[ , , 2])
-matriz_concatenada_azul <- dwt_concatenada_filas(perro_01[ , , 3])
 
 grid.newpage()
 grid.raster(perro_01/255)
 
 dimensiones <- c(dim(copia_filas_rojo), 3)
 
-matriz_concatenada_colores <- array(0, dim = dimensiones)
-matriz_concatenada_colores[ , , 1] <- matriz_concatenada_rojo
-matriz_concatenada_colores[ , , 2] <- matriz_concatenada_verde
-matriz_concatenada_colores[ , , 3] <- matriz_concatenada_azul
+matriz_concatenada_colores <- comp_concatenada_filas_RGB( perro_01 )
 
 grid.newpage()
 grid.raster(matriz_concatenada_colores/255)
@@ -585,9 +590,9 @@ grid.raster(matriz_concatenada_colores/255)
 ```{r 2_2_2_aplicar_a_concatenar_correccion, echo=FALSE}
 matriz_imagen <- perro_01
 
-matriz_concatenada_rojo <- dwt_concatenada_filas(perro_01[,,1])
-matriz_concatenada_verde <- dwt_concatenada_filas(perro_01[,,2])
-matriz_concatenada_azul <- dwt_concatenada_filas(perro_01[,,3])
+matriz_concatenada_rojo <- comp_concatenada_filas(perro_01[,,1])
+matriz_concatenada_verde <- comp_concatenada_filas(perro_01[,,2])
+matriz_concatenada_azul <- comp_concatenada_filas(perro_01[,,3])
 
 
 grid.newpage()
@@ -646,7 +651,7 @@ aplic_dwt <- function(imag, bn, wf, nivel) {
   }
 }
 
-comprimir_imag <- function(dwt_imagen, bn = FALSE, filtroQ = FALSE, q = -1) {
+filtrar_dwt <- function(dwt_imagen, bn = FALSE, filtroQ = FALSE, q = -1) {
   if (bn) {
     if (!(filtroQ)) {
       dwt_imag_filt <- filtro2d_paso_bajo(dwt_imagen)
@@ -691,7 +696,7 @@ La función `filtro2d_paso_bajo2` realiza un filtro de paso bajo sobre los coefi
 
 La función `aplic_dwt` aplica la Transformada Wavelet Discreta en 2D a los tres canales de la imagen (si bn = TRUE; si no, se trata la imagen como en blanco y negro), especificado el filtro wavelet (wf) y el nivel.
 
-La función `comprimir_imag` comprime la imagen, especificando si está en blanco y negro (bn = TRUE), o no; y el filtro a usar. Si filtroQ es FALSE, se usa el filtro `filtro2d_paso_bajo`, y si filtroQ es TRUE, se usa el filtro `filtro2d_paso_bajo2`. En este último caso, también se deberá especificar el cuantil que se quiera usar en el filtro.
+La función `filtrar_dwt` comprime la imagen, especificando si está en blanco y negro (bn = TRUE), o no; y el filtro a usar. Si filtroQ es FALSE, se usa el filtro `filtro2d_paso_bajo`, y si filtroQ es TRUE, se usa el filtro `filtro2d_paso_bajo2`. En este último caso, también se deberá especificar el cuantil que se quiera usar en el filtro.
 
 La función `reconstruir_imag` reconstruye la imagen por canal especificado si está en blanco y negro (bn = TRUE), o no, dada la dimensión de la imagen y dadas las transformadas Wavelet discretas en 2D de sus tres canales.
 
@@ -702,14 +707,14 @@ matriz_imagen <- perro_01
 dim <- dim(matriz_imagen)
 
 dwt_imagen <- aplic_dwt(matriz_imagen, FALSE, "haar", 1)
-imagen_comp1 <- comprimir_imag(dwt_imagen, FALSE)
+imagen_comp1 <- filtrar_dwt(dwt_imagen, FALSE)
 imagen_rec1 <- reconstruir_imag(imagen_comp1, FALSE, dim)
 q <- c(0.5, 0.7, 0.9)
-imagen_comp21 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q[1])
+imagen_comp21 <- filtrar_dwt(dwt_imagen, FALSE, TRUE, q[1])
 imagen_rec21 <- reconstruir_imag(imagen_comp21, FALSE, dim)
-imagen_comp22 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q[2])
+imagen_comp22 <- filtrar_dwt(dwt_imagen, FALSE, TRUE, q[2])
 imagen_rec22 <- reconstruir_imag(imagen_comp22, FALSE, dim)
-imagen_comp23 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q[3])
+imagen_comp23 <- filtrar_dwt(dwt_imagen, FALSE, TRUE, q[3])
 imagen_rec23 <- reconstruir_imag(imagen_comp23, FALSE, dim)
 ```
 
@@ -803,10 +808,10 @@ for (i in 1:length(imags)) {
   dim <- dim(imag)
   
   dwt_imagen <- aplic_dwt(imag, FALSE, "haar", 1)
-  imagen_comp1 <- comprimir_imag(dwt_imagen, FALSE)
+  imagen_comp1 <- filtrar_dwt(dwt_imagen, FALSE)
   imagen_rec1 <- reconstruir_imag(imagen_comp1, FALSE, dim)
   
-  imagen_comp2 <- comprimir_imag(dwt_imagen, FALSE, TRUE, q)
+  imagen_comp2 <- filtrar_dwt(dwt_imagen, FALSE, TRUE, q)
   imagen_rec2 <- reconstruir_imag(imagen_comp2, FALSE, dim)
   
   info1 <- calc_errores(imag, imagen_rec1)
@@ -830,14 +835,14 @@ matriz_imagen <- gato_02_filtro
 dim <- dim(matriz_imagen)
 
 dwt_imagen <- aplic_dwt(matriz_imagen, TRUE, "haar", 1)
-imagen_comp1 <- comprimir_imag(dwt_imagen, TRUE)
+imagen_comp1 <- filtrar_dwt(dwt_imagen, TRUE)
 imagen_rec1 <- reconstruir_imag(imagen_comp1, TRUE, dim)
 q <- c(0.5, 0.7, 0.9)
-imagen_comp21 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q[1])
+imagen_comp21 <- filtrar_dwt(dwt_imagen, TRUE, TRUE, q[1])
 imagen_rec21 <- reconstruir_imag(imagen_comp21, TRUE, dim)
-imagen_comp22 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q[2])
+imagen_comp22 <- filtrar_dwt(dwt_imagen, TRUE, TRUE, q[2])
 imagen_rec22 <- reconstruir_imag(imagen_comp22, TRUE, dim)
-imagen_comp23 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q[3])
+imagen_comp23 <- filtrar_dwt(dwt_imagen, TRUE, TRUE, q[3])
 imagen_rec23 <- reconstruir_imag(imagen_comp23, TRUE, dim)
 ```
 
@@ -888,10 +893,10 @@ for (i in 1:length(imags)) {
   dim <- dim(imag)
   
   dwt_imagen <- aplic_dwt(imag, TRUE, "haar", 1)
-  imagen_comp1 <- comprimir_imag(dwt_imagen, TRUE)
+  imagen_comp1 <- filtrar_dwt(dwt_imagen, TRUE)
   imagen_rec1 <- reconstruir_imag(imagen_comp1, TRUE, dim)
   
-  imagen_comp2 <- comprimir_imag(dwt_imagen, TRUE, TRUE, q)
+  imagen_comp2 <- filtrar_dwt(dwt_imagen, TRUE, TRUE, q)
   imagen_rec2 <- reconstruir_imag(imagen_comp2, TRUE, dim)
   
   info1 <- calc_errores(imag, imagen_rec1, TRUE)
@@ -1096,6 +1101,18 @@ visualizar_imagen_RGB <- function(matriz_RGB) {
 
 visualizar_imagen_RGB(normalized_matrices[[1]])
 ```
+Ahora sí, transformamos los vídeos al formato que más útil nos será:
+
+```{r}
+videos_matrix_norm <- c()
+for (names in video_files){  #Iteramos sobre cada video
+    aux_frames <- extract_frames_in_memory(names, fps = 1)
+    aux_rgb <- convert_frames_to_rgb(aux_frames)
+    aux_norm <- normalize_matrices(aux_rgb)
+    videos_matrix_norm <- c( videos_matrix_norm , aux_norm)
+}
+```
+
 
 # 6. Aplicación de Transformadas wavelet:
 
@@ -1120,12 +1137,9 @@ aplic_dwt_concat_video <- function(video_frames, bn, filtro, nivel){
 dwt2d_videos <- c()
 dwt_concat_videos<- c()
 
-for (names in video_files){  #Iteramos sobre cada video
-    aux_frames <- extract_frames_in_memory(names, fps = 1)
-    aux_rgb <- convert_frames_to_rgb(aux_frames)
-    aux_norm <- normalize_matrices(aux_rgb)
-    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( aux_norm, bn=FALSE, wf = "haar", nivel=2) ) )
-    dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( aux_norm, bn=FALSE, filtro = "haar", nivel=2) ) )
+for (i in 1:length(videos_matrix_norm)){  #Iteramos sobre cada video
+    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( videos_matrix_norm[[i]], bn=FALSE, wf = "haar", nivel=2) ) )
+    dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( videos_matrix_norm[[i]], bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
 La variable dwt2d_videos es una lista que contiene:
@@ -1149,13 +1163,11 @@ Con este objetivo preparamos el cálculo de la transformada wavelet de las trans
 dwt_trans_2d_videos <- c()
 dwt_trans_concat_videos <- c()
 
-for (names in video_files){  #Iteramos sobre cada video
-    aux_frames <- extract_frames_in_memory(names, fps = 1)
-    aux_rgb <- convert_frames_to_rgb(aux_frames)
-    aux_norm <- normalize_matrices(aux_rgb)
-    aux_trans <-  aux_norm[1] 
+for (i in 1:length(videos_matrix_norm)){  #Iteramos sobre cada video
+    
+    aux_trans <-  videos_matrix_norm[[1]][1] 
     for (i in 1:(length(aux_frames) -1 )){
-      aux_trans <- c( aux_trans , list( aux_norm[[i+1]] - aux_norm[[i]] )  )
+      aux_trans <- c( aux_trans , list( videos_matrix_norm[[1]][[i+1]] - videos_matrix_norm[[1]][[i]] )  )
     }
     dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, wf = "haar", nivel=2) ) )
     dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
@@ -1270,6 +1282,7 @@ rec_vid_paso_bajo2 <- function(video_frames_wavelet, trans = FALSE, q){
   }
   return(video_frames_compressed)
 }
+
 ```
 
 ```{r 6_a_reconstruccion, echo=FALSE}
@@ -1279,6 +1292,167 @@ video_paso_bajo <- rec_vid_paso_bajo(dwt2d_videos[[1]], trans = FALSE)
 video_paso_bajo_trans <- rec_vid_paso_bajo(dwt_trans_2d_videos[[1]], trans = TRUE)
 video_paso_bajo_2 <- rec_vid_paso_bajo2(dwt2d_videos[[1]], trans = FALSE, q = 0.1)
 video_paso_bajo_2_trans <- rec_vid_paso_bajo2(dwt_trans_2d_videos[[1]], trans = TRUE, q = 0.1)
+
+```
+
+
+Adicionalmente, aplicaremos un método "análogo" al que hemos visto anteriormente en una dimensión cuando concatenábamos las señales fila o columna de una matriz. Esta vez organizaremos los fotogramas en una cuadrícula suficientemente grande y calcularemos la transformada wavelet a esta imagen resultante, para posteriormente aplicar los filtros apropiados que nos darán la compresión de esta imagen. Una vez hecho esto podremos recuperar los fotogramas a partir de la imagen para recomponer el vídeo.
+
+En primer lugar hacemos las funciones que nos permiten concatenar y separar los fotogramas, siendo una función la "inversa" de la otra:
+
+
+```{r concatenate_and_split_frames_functions}
+
+concatenate_frames <- function(video_frames) {
+  # Número total de frames
+  num_frames <- length(video_frames)
+  
+  # Dimensiones de las imágenes (se asume que todas son del mismo tamaño)
+  frame_height <- dim(video_frames[[1]])[1]
+  frame_width <- dim(video_frames[[1]])[2]
+  
+  # Calcular el siguiente cuadrado perfecto mayor o igual al número de frames
+  sqrt_frames <- ceiling(sqrt(num_frames))
+  total_frames <- sqrt_frames^2
+  
+  # Añadir frames negros si es necesario
+  if (num_frames < total_frames) {
+    black_frame <- array(0, dim = c(frame_height, frame_width, 3)) # Frame negro
+    for (i in (num_frames + 1):total_frames) {
+      video_frames[[i]] <- black_frame
+    }
+  }
+  
+  # Dimensión de la cuadrícula
+  grid_dim <- sqrt_frames
+  
+  # Crear una imagen en blanco con el tamaño adecuado
+  final_image <- array(0, dim = c(frame_height * grid_dim, frame_width * grid_dim, 3) )
+  
+  # Llenar la imagen final con los frames
+  for (i in seq_along(video_frames)) {
+    # Calcular la posición en la cuadrícula
+    row <- (i - 1) %/% grid_dim
+    col <- (i - 1) %% grid_dim
+    
+    # Extraer el frame actual
+    current_frame <- video_frames[[i]]
+    
+    # Determinar la región donde colocar el frame
+    row_start <- row * frame_height + 1
+    row_end <- (row + 1) * frame_height
+    col_start <- col * frame_width + 1
+    col_end <- (col + 1) * frame_width
+    
+    # Insertar el frame en la imagen final
+    final_image[row_start:row_end, col_start:col_end, ] <- current_frame
+  }
+  
+  return(final_image)
+}
+
+split_frames <- function(concatenated_image, frame_height=256, frame_width=256) {
+  # Dimensiones de la imagen concatenada
+  image_height <- dim(concatenated_image)[1]
+  image_width <- dim(concatenated_image)[2]
+  
+  # Calcular la cantidad de frames en la cuadrícula
+  grid_rows <- image_height %/% frame_height
+  grid_cols <- image_width %/% frame_width
+  
+  # Lista para almacenar los frames extraídos
+  frames <- list()
+  
+  # Extraer cada frame de la imagen concatenada
+  frame_index <- 1
+  for (row in 0:(grid_rows - 1)) {
+    for (col in 0:(grid_cols - 1)) {
+      # Determinar la región del frame actual
+      row_start <- row * frame_height + 1
+      row_end <- (row + 1) * frame_height
+      col_start <- col * frame_width + 1
+      col_end <- (col + 1) * frame_width
+      
+      # Extraer el frame y agregarlo a la lista
+      current_frame <- concatenated_image[row_start:row_end, col_start:col_end, ]
+      frames[[frame_index]] <- current_frame
+      frame_index <- frame_index + 1
+    }
+  }
+  
+  return(frames)
+}
+```
+
+```{r concatenate_and_split_pruebas_1, echo=FALSE, include=FALSE}
+aux_frames <- extract_frames_in_memory(video_files[2], fps = 1)
+aux_rgb <- convert_frames_to_rgb(aux_frames)
+aux_norm <- normalize_matrices(aux_rgb)
+concatenated_frames <- concatenate_frames(aux_norm)
+visualizar_imagen_RGB(concatenated_frames)
+
+```
+
+```{r concatenate_and_split_pruebas_2, echo=FALSE, include=FALSE}
+rows <- nrow(aux_norm[[1]])
+cols <- ncol(aux_norm[[1]])
+lista <- split_frames(concatenated_frames, rows , cols )
+```
+
+Ahora construimos EL algoritmo de compresión propiamente dicho:
+
+```{r comprimir_video_frames_concatenados}
+
+compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nivel=2 ){ #Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
+  
+  N <- nrow( frames[[1]] )
+  M <- ncol( frames[[1]] )
+  
+  if(N != M){
+    mindim <- min( N , M )
+      frames <- normalize_matrices( frames, mindim, mindim )
+  }
+  
+  concatenated_frames <- concatenate_frames(frames)
+  
+  bn = as.logical( dim(frames[[1]])[3] %% 3 ) # ¿Es en blanco y negro?
+  
+  #Calculamos de dos maneras distintas la dwt
+  
+  dwt2d_frames_concat   <- aplic_dwt(concatenated_frames, bn = bn, wf= "haar", nivel=nivel) #dwt.2d 
+  
+  concat_frames_comprimida_2d   <- filtrar_dwt(dwt2d_frames_concat, bn = bn, filtroQ = filtroQ, q = q)
+  
+  concat_frames_reconstruida2d <- reconstruir_imag(concat_frames_comprimida_2d, bn=FALSE, dim= dim(concatenated_frames))
+  concat_frames_concat_filas_1d   <- comp_concatenada_filas_RGB(concatenated_frames, filtro = "haar", niveles=niveles)
+  
+  splitted_frames_comp2d <- split_frames(concat_frames_reconstruida2d, frame_height= N, frame_width= M)
+  splitted_frames_concat_filas_1d <- split_frames(cconcat_frames_concat_filas_1d, frame_height= N, frame_width= M)
+  
+  return( list( splitted_frames_comp , splitted_frames_concat_filas_1d) )
+}
+```
+
+```{r transponer_90_grados}
+rotate_frames_90 <- function(frames) {
+  # Lista para almacenar los fotogramas rotados
+  rotated_frames <- lapply(frames, function(frame) {
+    # Rotar 90 grados equivale a transponer y luego invertir el orden de las filas
+    apply(aperm(frame, c(2, 1, 3)), c(2, 3), rev)
+  })
+  
+  return(rotated_frames)
+}
+```
+
+```{r comprimir_video_frames_concatenados_prueba_1}
+aux_frames <- extract_frames_in_memory(video_files[2], fps = 1)
+aux_rgb <- convert_frames_to_rgb(aux_frames)
+aux_norm <- normalize_matrices(aux_rgb)
+comprimido<-compress_video_concat_frames(aux_norm)
+visualizar_imagen_RGB(comprimido[[1]][[1]])
+comprimido_rotado<- rotate_frames_90( rotate_frames_90( rotate_frames_90( comprimido) ) )
+visualizar_imagen_RGB(comprimido_rotado[[1]])
 ```
 
 ### b. Medición del error entre el video original y el comprimido.
@@ -1332,155 +1506,6 @@ error_compresion(normalized_matrices,video_paso_bajo_2_trans)
 
 ```
 
-```{r concatenate_and_split_frames_functions}
 
-concatenate_frames <- function(video_frames) {
-  # Número total de frames
-  num_frames <- length(video_frames)
-  
-  # Dimensiones de las imágenes (se asume que todas son del mismo tamaño)
-  frame_height <- dim(video_frames[[1]])[1]
-  frame_width <- dim(video_frames[[1]])[2]
-  
-  # Calcular el siguiente cuadrado perfecto mayor o igual al número de frames
-  sqrt_frames <- ceiling(sqrt(num_frames))
-  total_frames <- sqrt_frames^2
-  
-  # Añadir frames negros si es necesario
-  if (num_frames < total_frames) {
-    black_frame <- array(0, dim = c(frame_height, frame_width, 3)) # Frame negro
-    for (i in (num_frames + 1):total_frames) {
-      video_frames[[i]] <- black_frame
-    }
-  }
-  
-  # Dimensión de la cuadrícula
-  grid_dim <- sqrt_frames
-  
-  # Crear una imagen en blanco con el tamaño adecuado
-  final_image <- array(0, dim = c(frame_height * grid_dim, frame_width * grid_dim, 3) )
-  
-  # Llenar la imagen final con los frames
-  for (i in seq_along(video_frames)) {
-    # Calcular la posición en la cuadrícula
-    row <- (i - 1) %/% grid_dim
-    col <- (i - 1) %% grid_dim
-    
-    # Extraer el frame actual
-    current_frame <- video_frames[[i]]
-    
-    # Determinar la región donde colocar el frame
-    row_start <- row * frame_height + 1
-    row_end <- (row + 1) * frame_height
-    col_start <- col * frame_width + 1
-    col_end <- (col + 1) * frame_width
-    
-    # Insertar el frame en la imagen final
-    final_image[row_start:row_end, col_start:col_end, ] <- current_frame
-  }
-  
-  return(final_image)
-}
-
-
-
-split_frames <- function(concatenated_image, frame_height=256, frame_width=256) {
-  # Dimensiones de la imagen concatenada
-  image_height <- dim(concatenated_image)[1]
-  image_width <- dim(concatenated_image)[2]
-  
-  # Calcular la cantidad de frames en la cuadrícula
-  grid_rows <- image_height %/% frame_height
-  grid_cols <- image_width %/% frame_width
-  
-  # Lista para almacenar los frames extraídos
-  frames <- list()
-  
-  # Extraer cada frame de la imagen concatenada
-  frame_index <- 1
-  for (row in 0:(grid_rows - 1)) {
-    for (col in 0:(grid_cols - 1)) {
-      # Determinar la región del frame actual
-      row_start <- row * frame_height + 1
-      row_end <- (row + 1) * frame_height
-      col_start <- col * frame_width + 1
-      col_end <- (col + 1) * frame_width
-      
-      # Extraer el frame y agregarlo a la lista
-      current_frame <- concatenated_image[row_start:row_end, col_start:col_end, ]
-      frames[[frame_index]] <- current_frame
-      frame_index <- frame_index + 1
-    }
-  }
-  
-  return(frames)
-}
-
-```
-
-```{r concatenate_and_split_pruebas_1}
-aux_frames <- extract_frames_in_memory(video_files[2], fps = 1)
-aux_rgb <- convert_frames_to_rgb(aux_frames)
-aux_norm <- normalize_matrices(aux_rgb)
-concatenated_frames <- concatenate_frames(aux_norm)
-visualizar_imagen_RGB(concatenated_frames)
-
-```
-
-```{r concatenate_and_split_pruebas_2}
-rows <- nrow(aux_norm[[1]])
-cols <- ncol(aux_norm[[1]])
-lista <- split_frames(concatenated_frames, rows , cols )
-```
-
-Ahora construimos un algoritmo de compresión que consista en comprimir la imagen resultante de concatenar todos los fotogramas:
-
-```{r comprimir_video_frames_concatenados}
-
-compress_video_concat_frames <- function( frames , filtroQ = FALSE ,nivel=2 ){ #Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
-  
-  N <- nrow( frames[[1]] )
-  M <- ncol( frames[[1]] )
-  
-  if(N != M){
-    mindim <- min( N , M )
-      frames <- normalize_matrices( frames, mindim, mindim )
-  }
-  
-  concatenated_frames <- concatenate_frames(frames)
-  
-  bn = as.logical( dim(frames[[1]])[3] %% 3 ) # ¿Es en blanco y negro?
-  
-  dwt_frames_concat   <- aplic_dwt(concatenated_frames, bn = bn, wf= "haar", nivel=nivel)
-  concat_frames_comprimida   <- comprimir_imag(dwt_frames_concat, bn = bn, filtroQ= filtroQ, q = -1)
-  concat_frames_reconstruida <- reconstruir_imag(concat_frames_comprimida, bn=FALSE, dim= dim(concatenated_frames))
-  
-  splitted_frames_comp <- split_frames(concat_frames_reconstruida, frame_height= N, frame_width= M)
-  
-  return( splitted_frames_comp)
-}
-```
-
-```{r transponer_90_grados}
-rotate_frames_90 <- function(frames) {
-  # Lista para almacenar los fotogramas rotados
-  rotated_frames <- lapply(frames, function(frame) {
-    # Rotar 90 grados equivale a transponer y luego invertir el orden de las filas
-    apply(aperm(frame, c(2, 1, 3)), c(2, 3), rev)
-  })
-  
-  return(rotated_frames)
-}
-```
-
-```{r comprimir_video_frames_concatenados_prueba_1}
-aux_frames <- extract_frames_in_memory(video_files[2], fps = 1)
-aux_rgb <- convert_frames_to_rgb(aux_frames)
-aux_norm <- normalize_matrices(aux_rgb)
-comprimido<-compress_video_concat_frames(aux_norm)
-visualizar_imagen_RGB(comprimido[[1]])
-comprimido_rotado<- rotate_frames_90( rotate_frames_90( rotate_frames_90( comprimido) ) )
-visualizar_imagen_RGB(comprimido_rotado[[1]])
-```
 
 
