@@ -1189,7 +1189,7 @@ for (names in video_files){  #Iteramos sobre cada video
     for (i in 1:(length(aux_frames) -1 )){
       aux_trans <- c( aux_trans , list( aux_norm[[i+1]] - aux_norm[[i]] )  )
     }
-    dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
+    dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, wf = "haar", nivel=2) ) )
     dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
