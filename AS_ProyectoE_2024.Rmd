@@ -1,6 +1,10 @@
 ---
 title: "AS_ProyectoE_2024"
-author: "Marcos, Pablo Selma, Víctor Mateu"
+author:
+  - name: Marcos
+  - name: Pablo Selma
+  - name: Víctor Mateu
+  - name: Marc Velasco Mateu
 date: "2024-12-24"
 output: html_document
 ---
@@ -930,7 +934,6 @@ extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cui
   frames <- lapply(frames_raw, magick::image_read)
   frames
 }
-
 ```
 
 ```{r 4_1_3_extraccion_fotogramas, echo=FALSE}
@@ -1007,7 +1010,6 @@ cat("Dimensiones de un fotograma como matriz RGB:\n")
 print(dim(rgb_matrices_in_memory[[1]]))
 
 ```
-
 
 ### c.  Normalizar las matrices RGB 
 
@@ -1099,7 +1101,7 @@ visualizar_imagen_RGB_no_funciona <- function(matriz_RGB) {
   grid::grid.raster(img)
 }
 
-#visualizar_imagen_RGB(normalized_matrices[[1]])
+visualizar_imagen_RGB(normalized_matrices[[1]])
 
 ```
 
@@ -1163,13 +1165,11 @@ La variable dwt2d_videos es una lista que contiene:
   - Una lista por cada fotograma del vídeo que contiene (dwt2d_videos[[video_i]][[fotograma_j]]):
   - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
 
-
 La estructura de la variable dwt_concat_videos es similar a la anterior:
 
   - Una lista por cada vídeo que contiene     (dwt_concat_videos[[video_i]]):
   - Una lista por cada fotograma del vídeo que contiene (dwt_concat_videos[[video_i]][[fotograma_j]]):
   - La transformada wavelet del canal R [[1]], G [[2]] o B [[3]]
-
 
 Una cosa que puede ser especialmente útil para algoritmos de compresión aplicados a vídeos más o menos "estáticos", es decir, vídeos dónde un porcentaje elevado de píxeles no varía o varía muy poco, es aplicar la compresión al vector transición entre dos fotogramas, en vez de al fotograma en sí.
 
@@ -1177,7 +1177,6 @@ Concretamente, el algoritmo reconstruiría el vídeo a partir del primer fotogra
 Con este objetivo preparamos el cálculo de la transformada wavelet de las transiciones.
 
 ```{r 5_1_4_transformada_wavelet_2d_y_concat_transicion, echo=FALSE }
-
 dwt_trans_2d_videos <- c()
 dwt_trans_concat_videos <- c()
 
@@ -1200,3 +1199,166 @@ Ahora las variables dwt_trans_2d_videos y dwt_trans_concat_videos guardan:
   - Una lista con longitud el número de fotogramas del vídeo que contiene (dwt_concat_videos[[video_i]][[j]]):
     - Si j=1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del fotograma 1
     - Si j>1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del vector transición del fotograma j-1 al j
+
+## 6 Algoritmos de compresión:
+
+Una vez hemos encontrado los coeficientes wavelet de nuestros vídeos, tenemos que reconstruirlos a partir de estos coeficientes, de manera que permitan una compresión de información respecto del vídeo original, o eliminen artefactos no deseados como el ruido.
+
+Una de las maneras más fáciles de reconstruir estos vídeos, sería aplicando el proceso de reconstrucción por coeficientes wavelets visto en el apartado 3 a cada fotograma del vídeo. Si bien este método es funcional, no utiliza en ningún momento las propiedades de los vídeos, y reduce estos a imágenes independientes.
+
+Así, si queremos crear métodos de reconstrucción realmente interesantes, debemos aprovechar las propiedades de los vídeos como fotogramas consecutivos.
+
+### a. Generar algoritmos de reconstrucción de vídeo a partir de los coeficientes wavelets.
+
+En nuestros algoritmos, aplicaremos tres posibles distintas compresiones:
+
+* Ninguna compresión.
+* Compresión a través del filtro de paso bajo del apartado 3.
+* Compresión a través del segundo filtro de paso bajo del apartado 3.
+
+Además, estas compresiones y reconstrucciones se utilizaran de dos maneras distintas.
+
+* Fotograma a fotograma por separado.
+* En el primer fotograma y las matrices de paso.
+
+De esta manera, tenemos 6 maneras distintas de reconstruir nuestro vídeo.
+
+```{r 6_a_funciones_compresion_y_reconstruccion, echo=FALSE}
+#Restauración sin filtros (0 compresión)
+rec_vid_base <- function(video_frames_wavelet, trans = FALSE){
+  if (!trans) {
+    video_frames_compressed <- list()
+    for (i in 1:length(video_frames_wavelet)){
+      frame_r <- idwt.2d(video_frames_wavelet[[i]][[1]])
+      frame_g <- idwt.2d(video_frames_wavelet[[i]][[2]])
+      frame_b <- idwt.2d(video_frames_wavelet[[i]][[3]])
+      video_frames_compressed <- c(video_frames_compressed, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    }
+  } else {
+    frame_inicial_r <- idwt.2d(video_frames_wavelet[[1]][[1]])
+    frame_inicial_g <- idwt.2d(video_frames_wavelet[[1]][[2]])
+    frame_inicial_b <- idwt.2d(video_frames_wavelet[[1]][[3]])
+    frame_inicial <- array(c(frame_inicial_r, frame_inicial_g, frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
+    video_frames_compressed <- list(frame_inicial)
+    for (i in 2:length(video_frames_wavelet)){
+      frame_r <- idwt.2d(video_frames_wavelet[[i]][[1]])
+      frame_g <- idwt.2d(video_frames_wavelet[[i]][[2]])
+      frame_b <- idwt.2d(video_frames_wavelet[[i]][[3]])
+      video_frames_compressed <- c(video_frames_compressed, list(video_frames_compressed[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    }
+  }
+  return(video_frames_compressed)
+}
+
+#Restauración con filtro paso bajo 
+rec_vid_paso_bajo <- function(video_frames_wavelet, trans = FALSE){
+  if (!trans) {
+    video_frames_compressed <- list()
+    for (i in 1:length(video_frames_wavelet)){
+      frame_r <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[1]]))
+      frame_g <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[2]]))
+      frame_b <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[3]]))
+      video_frames_compressed <- c(video_frames_compressed, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    }
+  } else {
+    frame_inicial_r <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[1]][[1]]))
+    frame_inicial_g <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[1]][[2]]))
+    frame_inicial_b <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[1]][[3]]))
+    frame_inicial <- array(c(frame_inicial_r, frame_inicial_g, frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
+    video_frames_compressed <- list(frame_inicial)
+    for (i in 2:length(video_frames_wavelet)){
+      frame_r <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[1]]))
+      frame_g <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[2]]))
+      frame_b <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[3]]))
+      video_frames_compressed <- c(video_frames_compressed, list(video_frames_compressed[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    }
+  }
+  return(video_frames_compressed)
+}
+
+#Restauración con filtro paso bajo ajustable
+rec_vid_paso_bajo2 <- function(video_frames_wavelet, trans = FALSE, q){
+  if (!trans) {
+    video_frames_compressed <- list()
+    for (i in 1:length(video_frames_wavelet)){
+      frame_r <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[1]], q))
+      frame_g <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[2]], q))
+      frame_b <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[3]], q))
+      video_frames_compressed <- c(video_frames_compressed, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    }
+  } else {
+    frame_inicial_r <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[1]][[1]], q))
+    frame_inicial_g <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[1]][[2]], q))
+    frame_inicial_b <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[1]][[3]], q))
+    frame_inicial <- array(c(frame_inicial_r, frame_inicial_g, frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
+    video_frames_compressed <- list(frame_inicial)
+    for (i in 2:length(video_frames_wavelet)){
+      frame_r <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[1]], q))
+      frame_g <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[2]], q))
+      frame_b <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[3]], q))
+      video_frames_compressed <- c(video_frames_compressed, list(video_frames_compressed[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    }
+  }
+  return(video_frames_compressed)
+}
+```
+
+```{r 6_a_reconstruccion, echo=FALSE}
+video_base <- rec_vid_base(dwt2d_videos[[1]], trans = FALSE)
+video_base_trans <- rec_vid_base(dwt_trans_2d_videos[[1]], trans = TRUE)
+video_paso_bajo <- rec_vid_paso_bajo(dwt2d_videos[[1]], trans = FALSE)
+video_paso_bajo_trans <- rec_vid_paso_bajo(dwt_trans_2d_videos[[1]], trans = TRUE)
+video_paso_bajo_2 <- rec_vid_paso_bajo2(dwt2d_videos[[1]], trans = FALSE, q = 0.1)
+video_paso_bajo_2_trans <- rec_vid_paso_bajo2(dwt_trans_2d_videos[[1]], trans = TRUE, q = 0.1)
+```
+
+### b. Medición del error entre el video original y el comprimido.
+
+La manera más clara de medir el error entre un vídeo y su compresión, consiste en calcular el vídeo diferencia entre ambos, sumar todos los valores de todos los fotogramas con valor absoluto, y normalizar dependiendo de la resolución y el número de fotogramas.
+
+Sin embargo, dado que estamos utilizando métodos transicionales de compresión, es posible que el error se vaya acumulando de un fotograma a otro, resultando en un mayor error en el último fotograma.
+
+Así pues, nuestra medición del error tendrá dos partes, una donde se calculara la diferencia general entre el vídeo original y el comprimido, y otra donde se vea el error presente en el último fotograma.
+
+```{r 6_b_funcion_medición_error, echo=FALSE}
+mse_vid <- function(vid1, vid2) {
+  error <- 0
+  for (i in 1:length(vid1)) {
+    error <- error + sqrt(mse_imags(vid1[[i]], vid2[[i]], bn = FALSE))
+  }
+  error <- error/(length(vid1))
+  return(error)
+}
+
+error_compresion <- function(vid1, vid2) {
+  cat("El error cuadrático entre los dos videos es",mse_vid(vid1, vid2),"\n")
+  cat("El error cuadrático en el último fotograma es",sqrt(mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE)),"\n")
+}
+```
+
+Veamos ahora el error que se obtiene al aplicar cada método de compresión.
+
+```{r 6_b_comparacion_errores, echo=FALSE}
+print("Método: Fotograma a fotograma sin compresión.")
+error_compresion(normalized_matrices,video_base)
+print("Método: Matrices transicionales sin compresión.")
+error_compresion(normalized_matrices,video_base_trans)
+print("Método: Fotograma a fotograma con filtro de paso bajo.")
+error_compresion(normalized_matrices,video_paso_bajo)
+print("Método: Matrices transicionales con filtro de paso bajo.")
+error_compresion(normalized_matrices,video_paso_bajo_trans)
+print("Método: Fotograma a fotograma con filtro de paso bajo 2.")
+error_compresion(normalized_matrices,video_paso_bajo_2)
+print("Método: Matrices transicionales con filtro de paso bajo 2.")
+error_compresion(normalized_matrices,video_paso_bajo_2_trans)
+```
+
+### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
+
+```{r 6_c_medición_compresion, echo=FALSE}
+
+```
+
+```{r 6_c_comparacion_compresion, echo=FALSE}
+
+```
