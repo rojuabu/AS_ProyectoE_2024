@@ -4,6 +4,19 @@ date: "2024-12-24"
 output:
   html_document: default
   pdf_document: default
+=======
+title: "Compresión de imágenes y vídeos usando wavelets"
+author:
+  - Marcos Rosique
+  - Pablo Selma
+  - Víctor Mateu Izquierdo
+  - Marc Velasco Mateu
+  - Carlos Ribes García
+  - Rodrigo Juanes
+date: "2024-12-25"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -616,7 +629,7 @@ identical(matriz_filas_colores, matriz_concatenada_colores)
 
 ### a. Generar algoritmos de reconstrucción de imagen a partir de los coeficientes wavelets.
 
-La siguiente función (`filtro2d_paso_bajo`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejando todos los coeficientes de estas componentes en cero para reducir la información.
+La siguiente función (`filtro2d_paso_bajo`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejando todos los coeficientes de estas componentes en cero para reducir la información. Notamos que este filtro elimina el $75$% de los coeficientes de la transformada wavelet.
 
 ```{r 3_2_filtro_paso_bajo_2D_1, echo = TRUE}
 filtro2d_paso_bajo <- function(dwt2d_imag) {
@@ -630,13 +643,13 @@ filtro2d_paso_bajo <- function(dwt2d_imag) {
 }
 ```
 
-La siguiente función (`filtro2d_paso_bajo2`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D ajustado por un umbral. Esta función elimina los coeficientes de las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolos en cero, si son menores que el umbral `q` (que es el cuantil elegido de los coeficientes, en valor absoluto, de la subbanda de la imagen respectiva) para reducir la información.
+La siguiente función (`filtro2d_paso_bajo2`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D ajustado por un umbral. Esta función elimina los coeficientes de las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolos en cero, si son menores o iguales que el umbral `q` (que es el cuantil elegido de los coeficientes, en valor absoluto, de la subbanda de la imagen respectiva) para reducir la información. Notamos que este filtro elimina el ($q*75$)% de los coeficientes de la transformada wavelet. La función anterior es el caso particular $q = 1$ de esta función.
 
 ```{r 3_2_filtro_paso_bajo_2D_2, echo = TRUE}
 filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
-  dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) < quantile(abs(dwt2d_imag$LH1), q), 0, dwt2d_imag$LH1)
-  dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) < quantile(abs(dwt2d_imag$HL1), q), 0, dwt2d_imag$HL1)
-  dwt2d_imag$HH1 <- ifelse(abs(dwt2d_imag$HH1) < quantile(abs(dwt2d_imag$HH1), q), 0, dwt2d_imag$HH1)
+  dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) <= quantile(abs(dwt2d_imag$LH1), q), 0, dwt2d_imag$LH1)
+  dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) <= quantile(abs(dwt2d_imag$HL1), q), 0, dwt2d_imag$HL1)
+  dwt2d_imag$HH1 <- ifelse(abs(dwt2d_imag$HH1) <= quantile(abs(dwt2d_imag$HH1), q), 0, dwt2d_imag$HH1)
   
   return(dwt2d_imag)
 }
@@ -691,7 +704,6 @@ La función `reconstruir_imag` reconstruye la imagen dada su dimensión, y dada 
 ```{r 3_2_reconstruir_imag, echo = TRUE}
 reconstruir_imag <- function(dwt_imagen, bn, dim) {
   if (bn) {
-    imagen_rec <- array(0, dim = c(dim[1], dim[2]))
     imagen_rec <- idwt.2d(dwt_imagen)
     return(imagen_rec)
   } else {
@@ -948,7 +960,7 @@ print(tabla_info2)
 ```
 
 
-# 5. Importación de vídeos y preacondicionamiento
+# 4. Importación de vídeos y preacondicionamiento
 
 Para esta nueva sección se prueba a emplear la transformada wavelet a vídeos. En general, un vídeo se compone de una sucesión de fotogramas (imágenes) que se reproducen a una velocidad determinada. Por ello, simplemente implica realizar el trabajo realizado en los apartados anteriores para cada fotograma del vídeo.
 
@@ -1004,7 +1016,10 @@ for (i in video_files){
 ```
 Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. Para el primer vídeo de 13 segundos, se extraen un total de 13 fotogramas con un parámetro de 1 asignado a fps. Para el segundo, se observa un total de 8 fotogramas extraídos para una duración de 8 segundos.
 
+
 ```{r 5_1_3_1_visualizacion_fotogramas_extraidos, echo=TRUE, out.width="50%"}
+
+
 # Visualizar fotogramas extraídos para un video específico
 
   grobs <- lapply(videoframes_list[[1]], grid::rasterGrob)
@@ -1014,7 +1029,7 @@ Este es un ejemplo de los fotogramas extraídos para el primer video, con un tot
 
 ### b.  Transformar vídeos a matrices RGB: (Width X Height X 3 X #Fotogramas )
 
-```{r 5_2_1_fun_frames_a_matrices, echo=TRUE}
+```{r 5_2_1_fun_frames_a_matrices, echo=FALSE}
 # Convertir imágenes en memoria a matrices RGB
 convert_frames_to_rgb <- function(frames) {
   rgb_matrices <- lapply(frames, function(img) {
@@ -1107,6 +1122,7 @@ print(dim(normalized_matrices_list[[1]][[1]]))
 
 ```
 
+
 ```{r 5_3_4_visualizar_matrices_RGB, echo=TRUE, include=FALSE}
 visualizar_imagen_RGB <- function(matriz_RGB) {
   # Verificar que la matriz tiene tres dimensiones con la última dimensión de tamaño 3
@@ -1135,7 +1151,15 @@ visualizar_imagen_RGB <- function(matriz_RGB) {
 ```
 
 
+
 # 6. Aplicación de Transformadas wavelet:
+=======
+Esta última función (`visualizar_imagen_RGB`) se encarga de dar una última comprobación de requisitos para la matriz RBG y representa la imagen una vez ya redimensionada para comprobar que todo ha sido correcto.
+
+Con esta última finalización se termina el proceso de carga y preacondicionado de los vídeos. Se ha conseguido extraer los fotogramas de los vídeos, transformarlos en matrices RGB y reescalar las matrices a una cuadrada para poder aplicar la función wavelet en los posteriores apartados.
+
+# 5. Aplicación de Transformadas wavelet:
+
 
 ```{r 5_1_1_transformada_wavelet_2d_por_fotograma }
 
@@ -1209,7 +1233,7 @@ Ahora las variables dwt_trans_2d_videos y dwt_trans_concat_videos guardan:
     - Si j=1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del fotograma 1
     - Si j>1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del vector transición del fotograma j-1 al j
 
-# 7. Algoritmos de compresión:
+# 6. Algoritmos de compresión:
 
 Con los coeficientes wavelets obtenidos, seríamos capaces de reconstruir los vídeo originales. Sin embargo, también podemos modificar dichos coeficientes aplicando filtros y transformaciones para reducir la información que contienen sin alterar mucho la integridad del vídeo. De esta manera, habremos comprimido el vídeo.
 
@@ -1232,8 +1256,8 @@ Además, estas compresiones y reconstrucciones se utilizaran de dos maneras dist
 
 De esta manera, tenemos 6 maneras distintas de reconstruir nuestro vídeo.
 
-Las funciones wavelet que filtran los coeficientes wavelet de video las basaremos en las respectivas que tienen la misma función para imagen.
 
+Las funciones wavelet que filtran los coeficientes wavelet de video las basaremos en las respectivas que tienen la misma función para imagen.
 
 
 ```{r 6_a_funcion_compresion_paso_bajo, echo=FALSE}
@@ -1251,7 +1275,6 @@ comp_vid_paso_bajo <- function(video_frames_wavelet){
 ```
 
 
-
 ```{r 6_a_funcion_compresion_paso_bajo2, echo=FALSE}
 #Aplicación de filtro paso bajo ajustable a un vídeo
 comp_vid_paso_bajo2 <- function(video_frames_wavelet, q){
@@ -1266,9 +1289,11 @@ comp_vid_paso_bajo2 <- function(video_frames_wavelet, q){
 }
 ```
 
+
 Por último, creamos una función capaz de recuperar el vídeo a partir de los frames comprimidos, ya sea de manera usual, o transicional.
 
-```{r 6_a_funcion_compresion_paso_bajo2_2, echo=TRUE}
+```{r 6_a_funcion_compresion_paso_bajo2_2, echo=FALSE}
+
 #Reconstrucción del vídeo comprimido
 rec_vid <- function(video_frames_wavelet_compressed, trans = FALSE){
   if (!trans) {
@@ -1339,6 +1364,7 @@ Adicionalmente, aplicaremos un método "análogo" al que hemos visto anteriormen
 
 ```{r concatenate_and_split_frames_functions, include=FALSE}
 #En primer lugar hacemos las funciones que nos permiten concatenar y separar los fotogramas, siendo una función la "inversa" de la otra:
+
 concatenate_frames <- function(video_frames) {
   # Número total de frames
   num_frames <- length(video_frames)
@@ -1431,11 +1457,9 @@ cols <- ncol(normalized_matrices_list[[1]][[1]])
 lista <- split_frames(concatenated_frames, rows , cols )
 ```
 
-Vamos a construir el algoritmo de compresión propiamente dicho (las funciones concatenate_frames y split_frames son una la inversa de la otra y aglomeran o separan los fotogramas según se ha explicado anteriormente):
 
-```{r comprimir_video_frames_concatenados}
-compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nivel=2 ){ 
-#Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
+```{r comprimir_video_frames_concatenados, echo=FALSE}
+compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nivel=2 ){ #Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
   
   N <- nrow( frames[[1]] )
   M <- ncol( frames[[1]] )
@@ -1482,6 +1506,7 @@ rotate_frames_90 <- function(frames) {
   return(rotated_frames)
 }
 ```
+
 
 ```{r comprimir_video_frames_concatenados_prueba_1, include=FALSE}
 comprimido <- compress_video_concat_frames(normalized_matrices_list[[1]] )
@@ -1590,8 +1615,6 @@ De nuevo, vemos que la compresión no ha afectado gravemente a la fidelidad del 
 
 Nuestros métodos de compresión funcionaban sustituyendo puntos de las matrices de detalle y aproximación de nuestra transformada wavelet por 0. Así, para medir el grado de compresión de cada método, calcularemos el porcentaje de ceros existentes en nuestros coeficientes wavelet.
 
-La siguiente función tiene este propósito.
-
 ```{r 6_c_medición_compresion, echo=FALSE}
 proporcion_ceros <- function(wavelet_comprimido, nivel=2) {
   zeros <- 0
@@ -1633,11 +1656,13 @@ prop_ceros <- data.frame( rbind(
 ))
 names(prop_ceros)<- c("Método","Ratio")
 print(prop_ceros)
+
 ```
 
 Por comprobar que nuestro código es consisitente, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo giro.
 
 ```{r 6_c_comparacion_compresion_2, echo=FALSE, include=FALSE}
+
 cat("","Método: Fotograma a fotograma sin compresión.","\n")
 cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[2]])*100,"%")
 cat("\n","Método: Matrices transicionales sin compresión.","\n")
@@ -1651,6 +1676,7 @@ cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_baj
 cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
 cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo2_trans)*100,"%")
 ```
+
 ```{r, echo=FALSE}
 prop_ceros_2 <- data.frame( rbind(
   c("Fotograma a fotograma sin compresión", proporcion_ceros(dwt2d_videos[[2]])*100 ),
@@ -1669,6 +1695,6 @@ Como podemos observar, apenas hay compresión cuando no aplicamos ningún métod
 
 Por otro lado, el filtro de paso bajo usual aplica una compresión de alrededor de 75%, ya que elimina tres submatrices de detalle de la mitad de la longitud original.
 
-Por último, el filtro de paso bajo aplica una compresión de un 37%, aunque este factor es completamente dependiente de nuestro umbral de compresión aplicado. Podría ser tan bajo como 0%, o tan alto como 75%.
+Por último, el filtro de paso bajo aplica una compresión de un 37%, aunque este factor es completamente dependiente de nuestro umbral de compresión aplicado. En nuestro caso, esta compresión es igual a 37% porqué hemos usado un factor de 0.5, es decir, la mitad de 75%, la máxima compresión previa.
 
 
