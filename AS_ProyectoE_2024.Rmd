@@ -1230,7 +1230,7 @@ Además, estas compresiones y reconstrucciones se utilizaran de dos maneras dist
 
 De esta manera, tenemos 6 maneras distintas de reconstruir nuestro vídeo.
 
-```{r 6_a_funcion_compresion_paso_bajo, echo=TRUE}
+```{r 6_a_funcion_compresion_paso_bajo, echo=FALSE}
 #Aplicación de filtro paso bajo a un vídeo
 comp_vid_paso_bajo <- function(video_frames_wavelet){
   video_frames_wavelet_compressed <- list()
@@ -1258,7 +1258,7 @@ comp_vid_paso_bajo2 <- function(video_frames_wavelet, q){
 }
 ```
 
-```{r 6_a_funcion_compresion_paso_bajo2, echo=FALSE}
+```{r 6_a_funcion_reconstruccion, echo=FALSE}
 #Reconstrucción del vídeo comprimido
 rec_vid <- function(video_frames_wavelet_compressed, trans = FALSE){
   if (!trans) {
@@ -1552,7 +1552,7 @@ proporcion_ceros <- function(wavelet_comprimido, nivel=2) {
 
 A continuación, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo estatico.
 
-```{r 6_c_comparacion_compresion, echo=FALSE}
+```{r 6_c_comparacion_compresion_estatico, echo=FALSE}
 cat("","Método: Fotograma a fotograma sin compresión.","\n")
 cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[1]])*100,"%")
 cat("\n","Método: Matrices transicionales sin compresión.","\n")
@@ -1569,7 +1569,7 @@ cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso
 
 Por comprobar que nuestro código es consisitente, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo giro.
 
-```{r 6_c_comparacion_compresion, echo=FALSE}
+```{r 6_c_comparacion_compresion_giro, echo=FALSE}
 cat("","Método: Fotograma a fotograma sin compresión.","\n")
 cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[2]])*100,"%")
 cat("\n","Método: Matrices transicionales sin compresión.","\n")
