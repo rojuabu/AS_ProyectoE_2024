@@ -707,7 +707,7 @@ reconstruir_imag <- function(dwt_imagen, bn, dim) {
 }
 ```
 
-Procedemos a comprimir y a reconstruir la imagen usada en el apartado anterior, utilizando los dos filtros que actúan sobre la transformada wavelet discreta en 2D de la imagen. El segundo filtro, se probará para varios cuantiles (0.5, 0.7 y 0.9).
+Procedemos a comprimir la imagen usada en el apartado anterior utilizando los dos filtros que actúan sobre la transformada wavelet discreta en 2D de la imagen. El segundo filtro se probará para varios cuantiles (0.5, 0.7 y 0.9).
 
 ```{r 3_1_2_ejemplo_1_1, echo=FALSE}
 matriz_imagen <- perro_01
@@ -725,30 +725,30 @@ imagen_comp23 <- filtrar_dwt(dwt_imagen, FALSE, TRUE, q[3])
 imagen_rec23 <- reconstruir_imag(imagen_comp23, FALSE, dim)
 ```
 
-Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo reconstruida, y las imágenes comprimidas con el filtro de paso bajo utilizando el umbral reconstruidas.
+Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo, y las imágenes comprimidas con el filtro de paso bajo utilizando el umbral.
 
-Reconstrucción usando el primer filtro:
+Imagen comprimida usando el primer filtro:
 
 ```{r 3_1_2_ejemplo_1, echo=FALSE}
 grid.newpage()
 grid.raster(imagen_rec1 / 255)
 ```
 
-Reconstrucción usando el segundo filtro con `q = 0.5`:
+Imagen comprimida usando el segundo filtro con `q = 0.5`:
 
 ```{r 3_1_2_ejemplo_2, echo=FALSE}
 grid.newpage()
 grid.raster(imagen_rec21 / 255)
 ```
 
-Reconstrucción usando el segundo filtro con `q = 0.7`:
+Imagen comprimida usando el segundo filtro con `q = 0.7`:
 
 ```{r 3_1_2_ejemplo_3, echo=FALSE}
 grid.newpage()
 grid.raster(imagen_rec22 / 255)
 ```
 
-Reconstrucción usando el segundo filtro con `q = 0.9`:
+Imagen comprimida usando el segundo filtro con `q = 0.9`:
 
 ```{r 3_1_2_ejemplo_4, echo=FALSE}
 grid.newpage()
@@ -801,7 +801,7 @@ calc_errores <- function(imag1, imag2, bn = FALSE) {
 
 ### c. Analizar y ordenar los algoritmos vistos hasta el momento en base a la relación calidad / nivel de compresión
 
-Procedemos a calcular los errores MSE y MAE, y el PSNR entre la imagen original y las imágenes reconstruidas.
+Procedemos a calcular los errores MSE y MAE, y el PSNR entre la imagen original y las imágenes comprimidas.
 
 ```{r 3_3_1_errores_en_ejemplo_3_1, echo=FALSE}
 print("Error filtro paso bajo:")
@@ -818,7 +818,7 @@ calc_errores(matriz_imagen, matriz_filas_colores)
 
 Tras obtener los resultados, notamos que la compresión que usa el filtro de paso bajo con el umbral aplicado a la transformada wavelet discreta en 2D es el que proporciona la mayor calidad de imagen (cuanto menor sea el cuantil, más calidad se conserva), seguido de la compresión que usa el filtro de paso bajo aplicado a la transformada wavelet discreta en 2D.
 
-Ahora, se procede a generar una tabla que contiene información sobre el MSE, MAE y PSNR entre cada imagen en color y la imagen reconstruida obtenida a partir de esta con el método 1 (usando el filtro `filtro2d_paso_bajo`) o el método 2 (usando el filtro `filtro2d_paso_bajo2` y eligiendo el cuantil 0.7).
+Ahora, se procede a generar una tabla que contiene información sobre el MSE, MAE y PSNR entre cada imagen en color y su respectiva imagen comprimida obtenida con el método 1 (usando el filtro `filtro2d_paso_bajo`) o con el método 2 (usando el filtro `filtro2d_paso_bajo2` y eligiendo el cuantil 0.7).
 
 ```{r 3_3_2_tabla_errores_imagenesRGB, echo=FALSE}
 imags <- list(arbol_01, arbol_03, perro_01, flor_01, flor_02, planta_01, pinas_01, gato_01)
@@ -853,7 +853,7 @@ colnames(tabla_info) <- cols
 print(tabla_info)
 ```
 
-A continuación, procedemos a comprimir y a reconstruir una imagen en blanco y negro, utilizando los dos filtros que actúan sobre la transformada wavelet discreta en 2D de la imagen. El segundo filtro, se probará para varios cuantiles (0.5, 0.7 y 0.9).
+A continuación, procedemos a comprimir una imagen en blanco y negro utilizando los dos filtros que actúan sobre la transformada wavelet discreta en 2D de la imagen. El segundo filtro se probará para varios cuantiles (0.5, 0.7 y 0.9).
 
 ```{r 3_3_4_ejemplo_bn, echo=FALSE}
 matriz_imagen <- gato_02_filtro
@@ -871,37 +871,37 @@ imagen_comp23 <- filtrar_dwt(dwt_imagen, TRUE, TRUE, q[3])
 imagen_rec23 <- reconstruir_imag(imagen_comp23, TRUE, dim)
 ```
 
-Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo reconstruida, y las imágenes comprimidas con el filtro de paso bajo utilizando el umbral reconstruidas.
+Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo, y las imágenes comprimidas con el filtro de paso bajo utilizando el umbral.
 
-Reconstrucción usando el primer filtro:
+Imagen comprimida usando el primer filtro:
 
 ```{r 3_3_5_ejemplo_bn_1, echo=FALSE}
 grid.newpage()
 grid.raster(imagen_rec1 / 255)
 ```
 
-Reconstrucción usando el segundo filtro con `q = 0.5`:
+Imagen comprimida usando el segundo filtro con `q = 0.5`:
 
 ```{r 3_3_5_ejemplo_bn_2, echo=FALSE}
 grid.newpage()
 grid.raster(imagen_rec21 / 255)
 ```
 
-Reconstrucción usando el segundo filtro con `q = 0.7`:
+Imagen comprimida usando el segundo filtro con `q = 0.7`:
 
 ```{r 3_3_5_ejemplo_bn_3, echo=FALSE}
 grid.newpage()
 grid.raster(imagen_rec22 / 255)
 ```
 
-Reconstrucción usando el segundo filtro con `q = 0.9`:
+Imagen comprimida usando el segundo filtro con `q = 0.9`:
 
 ```{r 3_3_5_ejemplo_bn_4, echo=FALSE}
 grid.newpage()
 grid.raster(imagen_rec23 / 255)
 ```
 
-Procedemos a calcular los errores MSE y MAE, y el PSNR entre la imagen original y las imágenes reconstruidas.
+Procedemos a calcular los errores MSE y MAE, y el PSNR entre la imagen original y las imágenes comprimidas.
 
 ```{r 3_3_6_errores_ejemplo_bn, echo=FALSE}
 print("Error filtro paso bajo:")
@@ -914,7 +914,7 @@ print("Error filtro paso bajo 2, q = 0.9:")
 calc_errores(matriz_imagen, imagen_rec23, TRUE)
 ```
 
-Ahora, se procede a generar una tabla que contiene información sobre el MSE, MAE y PSNR entre cada imagen en blanco y negro y la imagen reconstruida obtenida a partir de esta con el método 1 (usando el filtro `filtro2d_paso_bajo`) o el método 2 (usando el filtro `filtro2d_paso_bajo2` y eligiendo el cuantil 0.7).
+Ahora, se procede a generar una tabla que contiene información sobre el MSE, MAE y PSNR entre cada imagen en blanco y negro y su respectiva imagen comprimida con el método 1 (usando el filtro `filtro2d_paso_bajo`) o con el método 2 (usando el filtro `filtro2d_paso_bajo2` y eligiendo el cuantil 0.7).
 
 ```{r 3_3_2_tabla_errores_imagenesBN, echo=FALSE}
 imags <- list(flor_04_filtro, flor_05_filtro, peluche_01_filtro, gato_02_filtro)
