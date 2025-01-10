@@ -992,8 +992,6 @@ extract_frames <- function(video_path, fps = 1) { #Manejar FPs con cuidado. Si s
 
 Primero se emplea la función (`extract_frames`) que se encarga de extraer los fotogramas de un vídeo a partir de un "path" y la tasa de fotogramas de captura usando la librería "av". A partir del parámetro de fps, el algoritmo extrae la misma cantidad de fotogramas por segundo. Como resultado, devuelve la lista con los fotogramas extraídos ordenados.  
 
-
-
 ```{r 5_1_3_extraccion_fotogramas, echo=FALSE}
 # Extraer fotogramas de cada video del fichero
 videoframes_list <- c()
@@ -1005,9 +1003,7 @@ for (i in video_files){
 
   #Añadir a lista de fotogramas
   videoframes_list <- c(videoframes_list, list(frames))
-  
   }
-  
 ```
 Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. Para el primer vídeo de 13 segundos, se extraen un total de 13 fotogramas con un parámetro de 1 asignado a fps. Para el segundo, se observa un total de 8 fotogramas extraídos para una duración de 8 segundos.
 
@@ -1015,12 +1011,9 @@ Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. P
 # Visualizar fotogramas extraídos para un video específico
 
   grobs <- lapply(videoframes_list[[1]], grid::rasterGrob)
-  grid.arrange(grobs = grobs, nrow = 4, ncol = 4)
-
+  grid.arrange(grobs = grobs, nrow = 4, ncol = 4
 ```
 Este es un ejemplo de los fotogramas extraídos para el primer video, con un total de 13.
-
-
 
 ### b.  Transformar vídeos a matrices RGB: (Width X Height X 3 X #Fotogramas )
 
@@ -1059,8 +1052,6 @@ for (i in videoframes_list){
   rgb_matrices_list <- c(rgb_matrices_list, list(convert_frames_to_rgb(i)))
 }
 ```
-
-
 
 ### c.  Normalizar las matrices RGB 
 
@@ -1105,8 +1096,6 @@ normalize_matrices <- function(rgb_matrices, target_width = 256, target_height =
 
 Siguiendo con la función (`normalize_matrices`). Se encarga de normalizar las matrices RGB a un tamaño objetivo. Para ello, se verifica que la matriz sea una matriz RGB válida, se convierte la matriz a un objeto magick, se redimensiona la imagen al tamaño objetivo, se convierte de nuevo la imagen a una matriz RGB normalizada en rango [0, 1] y se elimina el canal alfa si existe (reduciendo la matriz a 3 canales: R, G, B). Esto asegura que la matriz sea cuadrada, una de las condiciones necesarias para poder aplicar la función wavelet.
 
-
-
 ```{r 5_3_2_normalizar_matrices, echo=FALSE}
 
 normalized_matrices_list <- c()
@@ -1120,7 +1109,6 @@ cat("Dimensiones normalizadas de un fotograma:\n")
 print(dim(normalized_matrices_list[[1]][[1]]))
 
 ```
-
 
 ```{r 5_3_4_visualizar_matrices_RGB, echo=TRUE}
 visualizar_imagen_RGB <- function(matriz_RGB) {
@@ -1193,6 +1181,7 @@ for (i in 1:length(normalized_matrices_list)){  #Iteramos sobre cada video
     dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( normalized_matrices_list[[i]], bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
+
 La variable dwt2d_videos es una lista que contiene:
 
   - Una lista por cada vídeo que contiene     (dwt2d_videos[[video_i]]):
@@ -1234,19 +1223,19 @@ Ahora las variables dwt_trans_2d_videos y dwt_trans_concat_videos guardan:
 
 # 7. Algoritmos de compresión:
 
-Una vez hemos encontrado los coeficientes wavelet de nuestros vídeos, tenemos que reconstruirlos a partir de estos coeficientes, de manera que permitan una compresión de información respecto del vídeo original, o eliminen artefactos no deseados como el ruido.
+Con los coeficientes wavelets obtenidos, seríamos capaces de reconstruir los vídeo originales. Sin embargo, también podemos modificar dichos coeficientes aplicando filtros y transformaciones para reducir la información que contienen sin alterar mucho la integridad del vídeo. De esta manera, habremos comprimido el vídeo.
 
-Una de las maneras más fáciles de reconstruir estos vídeos, sería aplicando el proceso de reconstrucción por coeficientes wavelets visto en el apartado 3 a cada fotograma del vídeo. Si bien este método es funcional, no utiliza en ningún momento las propiedades de los vídeos, y reduce estos a imágenes independientes.
+Una de las maneras más fáciles de comprimir y reconstruir estos vídeos, sería aplicando el proceso de compresión y reconstrucción por coeficientes wavelets visto en el apartado 3 a cada fotograma del vídeo. Si bien este método es funcional, no utiliza en ningún momento las propiedades de los vídeos, y reduce estos a imágenes independientes.
 
-Así, si queremos crear métodos de reconstrucción realmente interesantes, debemos aprovechar las propiedades de los vídeos como fotogramas consecutivos.
+Así, si queremos crear métodos de reconstrucción y compresión realmente interesantes, debemos aprovechar las propiedades de los vídeos como fotogramas consecutivos.
 
 ### a. Generar algoritmos de reconstrucción de vídeo a partir de los coeficientes wavelets.
 
 En nuestros algoritmos, aplicaremos tres posibles distintas compresiones:
 
 * Ninguna compresión.
-* Compresión a través del filtro de paso bajo del apartado 3.
-* Compresión a través del segundo filtro de paso bajo del apartado 3.
+* Compresión a través del filtro de paso bajo del apartado 3.2.
+* Compresión a través del segundo filtro de paso bajo del apartado 3.2.
 
 Además, estas compresiones y reconstrucciones se utilizaran de dos maneras distintas.
 
@@ -1255,105 +1244,93 @@ Además, estas compresiones y reconstrucciones se utilizaran de dos maneras dist
 
 De esta manera, tenemos 6 maneras distintas de reconstruir nuestro vídeo.
 
-```{r 6_a_funciones_compresion_y_reconstruccion, echo=FALSE}
-#Restauración sin filtros (0 compresión)
-rec_vid_base <- function(video_frames_wavelet, trans = FALSE){
+Veamos las funciones en R que comprimen los coeficiente wavelet:
+
+Compresión de paso bajo:
+
+```{r 6_a_funcion_compresion_paso_bajo, echo=TRUE}
+#Aplicación de filtro paso bajo a un vídeo
+comp_vid_paso_bajo <- function(video_frames_wavelet){
+  video_frames_wavelet_compressed <- list()
+  for (i in 1:length(video_frames_wavelet)){
+    frame_r <- filtro2d_paso_bajo(video_frames_wavelet[[i]][[1]])
+    frame_g <- filtro2d_paso_bajo(video_frames_wavelet[[i]][[2]])
+    frame_b <- filtro2d_paso_bajo(video_frames_wavelet[[i]][[3]])
+    fotograma <- list(frame_r,frame_g,frame_b)
+    video_frames_wavelet_compressed <- c(video_frames_wavelet_compressed, list(fotograma))}
+  return(video_frames_wavelet_compressed)
+}
+```
+
+Compresión de paso bajo 2 (Ajustable):
+
+```{r 6_a_funcion_compresion_paso_bajo2, echo=TRUE}
+#Aplicación de filtro paso bajo ajustable a un vídeo
+comp_vid_paso_bajo2 <- function(video_frames_wavelet, q){
+  video_frames_wavelet_compressed <- list()
+  for (i in 1:length(video_frames_wavelet)){
+    frame_r <- filtro2d_paso_bajo2(video_frames_wavelet[[i]][[1]],q)
+    frame_g <- filtro2d_paso_bajo2(video_frames_wavelet[[i]][[2]],q)
+    frame_b <- filtro2d_paso_bajo2(video_frames_wavelet[[i]][[3]],q)
+    fotograma <- list(frame_r,frame_g,frame_b)
+    video_frames_wavelet_compressed <- c(video_frames_wavelet_compressed, list(fotograma))}
+  return(video_frames_wavelet_compressed)
+}
+```
+
+Por último, creamos una función capaz de recuperar el vídeo a partir de los frames comprimidos, ya sea de manera usual, o transicional.
+
+```{r 6_a_funcion_compresion_paso_bajo2, echo=TRUE}
+#Reconstrucción del vídeo comprimido
+rec_vid <- function(video_frames_wavelet_compressed, trans = FALSE){
   if (!trans) {
-    video_frames_compressed <- list()
-    for (i in 1:length(video_frames_wavelet)){
-      frame_r <- idwt.2d(video_frames_wavelet[[i]][[1]])
-      frame_g <- idwt.2d(video_frames_wavelet[[i]][[2]])
-      frame_b <- idwt.2d(video_frames_wavelet[[i]][[3]])
-      video_frames_compressed <- c(video_frames_compressed, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    video_frames <- list()
+    for (i in 1:length(video_frames_wavelet_compressed)){
+      frame_r <- idwt.2d(video_frames_wavelet_compressed[[i]][[1]])
+      frame_g <- idwt.2d(video_frames_wavelet_compressed[[i]][[2]])
+      frame_b <- idwt.2d(video_frames_wavelet_compressed[[i]][[3]])
+      video_frames <- c(video_frames, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
     }
   } else {
-    frame_inicial_r <- idwt.2d(video_frames_wavelet[[1]][[1]])
-    frame_inicial_g <- idwt.2d(video_frames_wavelet[[1]][[2]])
-    frame_inicial_b <- idwt.2d(video_frames_wavelet[[1]][[3]])
+    frame_inicial_r <- idwt.2d(video_frames_wavelet_compressed[[1]][[1]])
+    frame_inicial_g <- idwt.2d(video_frames_wavelet_compressed[[1]][[2]])
+    frame_inicial_b <- idwt.2d(video_frames_wavelet_compressed[[1]][[3]])
     frame_inicial <- array(c(frame_inicial_r, frame_inicial_g, frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
-    video_frames_compressed <- list(frame_inicial)
-    for (i in 2:length(video_frames_wavelet)){
-      frame_r <- idwt.2d(video_frames_wavelet[[i]][[1]])
-      frame_g <- idwt.2d(video_frames_wavelet[[i]][[2]])
-      frame_b <- idwt.2d(video_frames_wavelet[[i]][[3]])
-      video_frames_compressed <- c(video_frames_compressed, list(video_frames_compressed[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+    video_frames <- list(frame_inicial)
+    for (i in 2:length(video_frames_wavelet_compressed)){
+      frame_r <- idwt.2d(video_frames_wavelet_compressed[[i]][[1]])
+      frame_g <- idwt.2d(video_frames_wavelet_compressed[[i]][[2]])
+      frame_b <- idwt.2d(video_frames_wavelet_compressed[[i]][[3]])
+      video_frames <- c(video_frames, list(video_frames[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
     }
   }
-  return(video_frames_compressed)
+  return(video_frames)
 }
-
-#Restauración con filtro paso bajo 
-rec_vid_paso_bajo <- function(video_frames_wavelet, trans = FALSE){
-  if (!trans) {
-    video_frames_compressed <- list()
-    for (i in 1:length(video_frames_wavelet)){
-      frame_r <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[1]]))
-      frame_g <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[2]]))
-      frame_b <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[3]]))
-      video_frames_compressed <- c(video_frames_compressed, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
-    }
-  } else {
-    frame_inicial_r <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[1]][[1]]))
-    frame_inicial_g <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[1]][[2]]))
-    frame_inicial_b <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[1]][[3]]))
-    frame_inicial <- array(c(frame_inicial_r, frame_inicial_g, frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
-    video_frames_compressed <- list(frame_inicial)
-    for (i in 2:length(video_frames_wavelet)){
-      frame_r <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[1]]))
-      frame_g <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[2]]))
-      frame_b <- idwt.2d(filtro2d_paso_bajo(video_frames_wavelet[[i]][[3]]))
-      video_frames_compressed <- c(video_frames_compressed, list(video_frames_compressed[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
-    }
-  }
-  return(video_frames_compressed)
-}
-
-#Restauración con filtro paso bajo ajustable
-rec_vid_paso_bajo2 <- function(video_frames_wavelet, trans = FALSE, q){
-  if (!trans) {
-    video_frames_compressed <- list()
-    for (i in 1:length(video_frames_wavelet)){
-      frame_r <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[1]], q))
-      frame_g <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[2]], q))
-      frame_b <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[3]], q))
-      video_frames_compressed <- c(video_frames_compressed, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
-    }
-  } else {
-    frame_inicial_r <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[1]][[1]], q))
-    frame_inicial_g <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[1]][[2]], q))
-    frame_inicial_b <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[1]][[3]], q))
-    frame_inicial <- array(c(frame_inicial_r, frame_inicial_g, frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
-    video_frames_compressed <- list(frame_inicial)
-    for (i in 2:length(video_frames_wavelet)){
-      frame_r <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[1]], q))
-      frame_g <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[2]], q))
-      frame_b <- idwt.2d(filtro2d_paso_bajo2(video_frames_wavelet[[i]][[3]], q))
-      video_frames_compressed <- c(video_frames_compressed, list(video_frames_compressed[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
-    }
-  }
-  return(video_frames_compressed)
-}
-
 ```
 
 ```{r 6_a_reconstruccion, echo=FALSE}
-video_base <- rec_vid_base(dwt2d_videos[[1]], trans = FALSE)
-video_base_trans <- rec_vid_base(dwt_trans_2d_videos[[1]], trans = TRUE)
-video_paso_bajo <- rec_vid_paso_bajo(dwt2d_videos[[1]], trans = FALSE)
-video_paso_bajo_trans <- rec_vid_paso_bajo(dwt_trans_2d_videos[[1]], trans = TRUE)
-video_paso_bajo_2 <- rec_vid_paso_bajo2(dwt2d_videos[[1]], trans = FALSE, q = 0.1)
-video_paso_bajo_2_trans <- rec_vid_paso_bajo2(dwt_trans_2d_videos[[1]], trans = TRUE, q = 0.1)
+video_base <- rec_vid(dwt2d_videos[[1]], trans = FALSE)
 
+video_base_trans <- rec_vid(dwt_trans_2d_videos[[1]], trans = TRUE)
+
+wavelet_comprimido_paso_bajo <- comp_vid_paso_bajo(dwt2d_videos[[1]])
+video_paso_bajo <- rec_vid(wavelet_comprimido_paso_bajo, trans = FALSE)
+
+wavelet_comprimido_paso_bajo_trans <- comp_vid_paso_bajo(dwt_trans_2d_videos[[1]])
+video_paso_bajo_trans <- rec_vid(wavelet_comprimido_paso_bajo_trans, trans = TRUE)
+
+wavelet_comprimido_paso_bajo2 <- comp_vid_paso_bajo2(dwt2d_videos[[1]], q = 0.5)
+video_paso_bajo2 <- rec_vid(wavelet_comprimido_paso_bajo2, trans = FALSE)
+
+wavelet_comprimido_paso_bajo2_trans <- comp_vid_paso_bajo2(dwt_trans_2d_videos[[1]], q = 0.5)
+video_paso_bajo2_trans <- rec_vid(wavelet_comprimido_paso_bajo2_trans, trans = TRUE)
 ```
-
 
 Adicionalmente, aplicaremos un método "análogo" al que hemos visto anteriormente en una dimensión cuando concatenábamos las señales fila o columna de una matriz. Esta vez organizaremos los fotogramas en una cuadrícula suficientemente grande y calcularemos la transformada wavelet a esta imagen resultante, para posteriormente aplicar los filtros apropiados que nos darán la compresión de esta imagen. Una vez hecho esto podremos recuperar los fotogramas a partir de la imagen para recomponer el vídeo.
 
 En primer lugar hacemos las funciones que nos permiten concatenar y separar los fotogramas, siendo una función la "inversa" de la otra:
 
-
 ```{r concatenate_and_split_frames_functions}
-
 concatenate_frames <- function(video_frames) {
   # Número total de frames
   num_frames <- length(video_frames)
@@ -1436,10 +1413,8 @@ split_frames <- function(concatenated_image, frame_height=256, frame_width=256) 
 ```
 
 ```{r concatenate_and_split_pruebas_1, echo=FALSE, include=FALSE}
-
 concatenated_frames <- concatenate_frames(normalized_matrices_list[[1]])
 visualizar_imagen_RGB(concatenated_frames)
-
 ```
 
 ```{r concatenate_and_split_pruebas_2, echo=FALSE, include=FALSE}
@@ -1451,7 +1426,6 @@ lista <- split_frames(concatenated_frames, rows , cols )
 Ahora construimos EL algoritmo de compresión propiamente dicho:
 
 ```{r comprimir_video_frames_concatenados}
-
 compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nivel=2 ){ #Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
   
   N <- nrow( frames[[1]] )
@@ -1495,12 +1469,10 @@ rotate_frames_90 <- function(frames) {
 ```
 
 ```{r comprimir_video_frames_concatenados_prueba_1}
-
-comprimido<-compress_video_concat_frames(normalized_matrices_list[[1]] )
+comprimido <- compress_video_concat_frames(normalized_matrices_list[[1]] )
 
 comprimido_concat_2d <- comprimido[[1]]  #Comprime la cuadrícula de fotogramas mediante dwt.2d
 comprimido_concat_1d <- comprimido[[2]]  #Comprime la cuadrícula de fotogrames mediante la dwt 1d al vector que concatena los píxeles
-
 ```
 
 ### b. Medición del error entre el video original y el comprimido.
