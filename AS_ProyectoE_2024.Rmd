@@ -3,7 +3,7 @@ title: "AS_ProyectoE_2024"
 author:
   - name: Marcos Rosique
   - name: Pablo Selma
-  - name: Víctor Mateu
+  - name: Víctor Mateu Izquierdo
   - name: Marc Velasco Mateu
   - name: Carlos Ribes García
   - name: Rodrigo Juanes
@@ -615,12 +615,13 @@ Esto lo podemos ver confirmado con la función `identical`
 identical(matriz_filas_colores, matriz_concatenada_colores)
 ```
 
-## 3.2. Algoritmos de compresión Bidimensionales.
+## 3.2. Algoritmos de compresión bidimensionales.
 
 ### a. Generar algoritmos de reconstrucción de imagen a partir de los coeficientes wavelets.
 
-```{r 3_1_1_funcion2d_paso_bajo, echo=FALSE}
+La siguiente función (`filtro2d_paso_bajo`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejando todos los coeficientes de estas componentes en cero para reducir la información.
 
+```{r 3_2_filtro_paso_bajo_2D_1, echo = TRUE}
 filtro2d_paso_bajo <- function(dwt2d_imag) {
   dim <- dim(dwt2d_imag$LH1)
   
@@ -630,7 +631,11 @@ filtro2d_paso_bajo <- function(dwt2d_imag) {
   
   return(dwt2d_imag)
 }
+```
 
+La siguiente función (`filtro2d_paso_bajo2`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D ajustado por un umbral. Esta función elimina los coeficientes de las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolos en cero, si son menores que el umbral `q` (que es el cuantil elegido de los coeficientes, en valor absoluto, de la subbanda de la imagen respectiva) para reducir la información.
+
+```{r 3_2_filtro_paso_bajo_2D_2, echo = TRUE}
 filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
   dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) < quantile(abs(dwt2d_imag$LH1), q), 0, dwt2d_imag$LH1)
   dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) < quantile(abs(dwt2d_imag$HL1), q), 0, dwt2d_imag$HL1)
@@ -638,7 +643,11 @@ filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
   
   return(dwt2d_imag)
 }
+```
 
+La siguiente función (`aplic_dwt`) aplica la transformada wavelet discreta en 2D a la imagen si está en blanco y negro (`bn == TRUE`), o se aplica a los tres canales de la imagen si no está en blanco y negro (`bn == FALSE`), especificado el tipo de wavelet madre (`wf`) y el nivel.
+
+```{r 3_2_aplicar_DWT_2D, echo = TRUE}
 aplic_dwt <- function(imag, bn, wf, nivel) {
   if (bn) {
     dwt_imagen <- dwt.2d(imag, wf = wf, J = nivel)
@@ -650,7 +659,11 @@ aplic_dwt <- function(imag, bn, wf, nivel) {
     return(list(dwt_imagen_r, dwt_imagen_g, dwt_imagen_b))
   }
 }
+```
 
+La siguiente función (`filtrar_dwt`) aplica el filtro a la imagen dada su transformada wavelet discreta en 2D si está en blanco y negro (`bn == TRUE`), o dadas las transformadas wavelet de sus tres canales si no está en blanco y negro (`bn == FALSE`); y especificado el filtro a usar: si `filtroQ == FALSE`, se usa el filtro `filtro2d_paso_bajo`, y si `filtroQ == TRUE`, se usa el filtro `filtro2d_paso_bajo2`. En este último caso, también se deberá especificar el cuantil (`q`) que se quiera usar en el filtro.
+
+```{r 3_2_filtrar_DWT_2D, echo = TRUE}
 filtrar_dwt <- function(dwt_imagen, bn = FALSE, filtroQ = FALSE, q = -1) {
   if (bn) {
     if (!(filtroQ)) {
@@ -674,7 +687,11 @@ filtrar_dwt <- function(dwt_imagen, bn = FALSE, filtroQ = FALSE, q = -1) {
     }
   }
 }
+```
 
+La función `reconstruir_imag` reconstruye la imagen dada su dimensión, y dada su transformada wavelet discreta 2D si la imagen está en blanco y negro (`bn == TRUE`), o dadas las transformadas wavelet discretas en 2D de sus tres canales si la imagen no está en blanco y negro (`bn == FALSE`).
+
+```{r 3_2_reconstruir_imag, echo = TRUE}
 reconstruir_imag <- function(dwt_imagen, bn, dim) {
   if (bn) {
     imagen_rec <- array(0, dim = c(dim[1], dim[2]))
@@ -690,17 +707,7 @@ reconstruir_imag <- function(dwt_imagen, bn, dim) {
 }
 ```
 
-La función `filtro2d_paso_bajo` realiza un filtro de paso bajo sobre los coeficientes de la transformada Wavelet discreta en 2D. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolas en cero para reducir la información.
-
-La función `filtro2d_paso_bajo2` realiza un filtro de paso bajo sobre los coeficientes de la transformada Wavelet discreta en 2D ajustado por un umbral. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolas en cero si son menores que el umbral (q, que es un cuantil de los coeficientes de la subbanda de la imagen respectiva) para reducir la información.
-
-La función `aplic_dwt` aplica la Transformada Wavelet Discreta en 2D a los tres canales de la imagen (si bn = TRUE; si no, se trata la imagen como en blanco y negro), especificado el filtro wavelet (wf) y el nivel.
-
-La función `filtrar_dwt` comprime la imagen, especificando si está en blanco y negro (bn = TRUE), o no; y el filtro a usar. Si filtroQ es FALSE, se usa el filtro `filtro2d_paso_bajo`, y si filtroQ es TRUE, se usa el filtro `filtro2d_paso_bajo2`. En este último caso, también se deberá especificar el cuantil que se quiera usar en el filtro.
-
-La función `reconstruir_imag` reconstruye la imagen por canal especificado si está en blanco y negro (bn = TRUE), o no, dada la dimensión de la imagen y dadas las transformadas Wavelet discretas en 2D de sus tres canales.
-
-Procedemos a comprimir y a reconstruir la imagen usada en el apartado anterior, utilizando los dos filtros que han sido definidos en el chunk anterior.
+Procedemos a comprimir y a reconstruir la imagen usada en el apartado anterior, utilizando los dos filtros que actúan sobre la transformada wavelet discreta en 2D de la imagen. El segundo filtro, se probará para varios cuantiles (0.5, 0.7 y 0.9).
 
 ```{r 3_1_2_ejemplo_1_1, echo=FALSE}
 matriz_imagen <- perro_01
@@ -718,33 +725,41 @@ imagen_comp23 <- filtrar_dwt(dwt_imagen, FALSE, TRUE, q[3])
 imagen_rec23 <- reconstruir_imag(imagen_comp23, FALSE, dim)
 ```
 
-Procedemos a mostrar la imagen original, la imagen comprimida con el filtro de paso bajo reconstruida, y la imagen comprimida con el filtro de paso bajo utilizando el umbral reconstruida.
+Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo reconstruida, y las imágenes comprimidas con el filtro de paso bajo utilizando el umbral reconstruidas.
 
-```{r 3_1_2_ejemplo_1_2, echo=FALSE}
-grid.newpage()
-print("Imagen Original")
-grid.raster(matriz_imagen / 255)
+Reconstrucción usando el primer filtro:
 
+```{r 3_1_2_ejemplo_1, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 1")
 grid.raster(imagen_rec1 / 255)
+```
 
+Reconstrucción usando el segundo filtro con `q = 0.5`:
+
+```{r 3_1_2_ejemplo_2, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 2, q = 0.5")
 grid.raster(imagen_rec21 / 255)
+```
 
+Reconstrucción usando el segundo filtro con `q = 0.7`:
+
+```{r 3_1_2_ejemplo_3, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 2, q = 0.7")
 grid.raster(imagen_rec22 / 255)
+```
 
+Reconstrucción usando el segundo filtro con `q = 0.9`:
+
+```{r 3_1_2_ejemplo_4, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 2, q = 0.9")
 grid.raster(imagen_rec23 / 255)
 ```
 
 ### b. Programar (o buscar) funciones (por ejemplo MSE) para medir el error entre la imagen original y la comprimida.
 
-```{r 3_2_1_medidas_de_error, echo=TRUE}
+MSE: Error Cuadrático Medio. Media aritmética de los MSEs de los tres canales.
+
+```{r 3_2_1_medidas_de_error_MSE, echo=TRUE}
 mse_imags <- function(imag1, imag2, bn = FALSE) {
   if (bn) {
     return(mean((imag1 - imag2)^2))
@@ -752,7 +767,11 @@ mse_imags <- function(imag1, imag2, bn = FALSE) {
     return(mean(c(mean((imag1[,,1] - imag2[,,1])^2), mean((imag1[,,2] - imag2[,,2])^2), mean((imag1[,,3] - imag2[,,3])^2))))
   }
 }
+```
 
+MAE: Error Absoluto Medio. Media aritmética de los MAEs de los tres canales.
+
+```{r 3_2_1_medidas_de_error_MAE, echo=TRUE}
 mae_imags <- function(imag1, imag2, bn = FALSE) {
   if (bn) {
     return(mean(abs(imag1 - imag2)))
@@ -760,25 +779,29 @@ mae_imags <- function(imag1, imag2, bn = FALSE) {
     return(mean(c(mean(abs(imag1[,,1] - imag2[,,1])), mean(abs(imag1[,,2] - imag2[,,2])), mean(abs(imag1[,,3] - imag2[,,3])))))
   }
 }
+```
 
+PSNR: Proporción Máxima de Señal-Ruido (relación entre la máxima energía posible de una señal y el ruido que afecta a su representación fidedigna). El MSE se ha calculado como la media aritmética de los MSEs de los tres canales.
+
+```{r 3_2_1_medidas_de_error_PSNR, echo=TRUE}
 psnr_imags <- function(imag1, imag2, bn = FALSE) {
   mse <- mse_imags(imag1, imag2, bn)
   max_intensidad <- 255
   return(10 * log10((max_intensidad^2) / mse))
 }
+```
 
+La siguiente función (`calc_errores`) calcula los errores MSE y MAE, y el PSNR entre `imag1` e `imag2`, especificado si ambas imágenes están en blanco y negro (`bn = TRUE`), o no.
+
+```{r 3_2_1_medidas_de_error_calcular_errores, echo=TRUE}
 calc_errores <- function(imag1, imag2, bn = FALSE) {
   return(c("MSE" = mse_imags(imag1, imag2, bn), "MAE" = mae_imags(imag1, imag2, bn), "PSNR" = psnr_imags(imag1, imag2, bn)))
 }
 ```
 
-MSE: Error Cuadrático Medio. Media aritmética de los MSEs de los tres canales.
-
-MAE: Error Absoluto Medio. Media aritmética de los MAEs de los tres canales.
-
-PSNR: Proporción Máxima de Señal-Ruido (relación entre la máxima energía posible de una señal y el ruido que afecta a su representación fidedigna). El MSE se ha calculado como la media aritmética de los MSEs de los tres canales.
-
 ### c. Analizar y ordenar los algoritmos vistos hasta el momento en base a la relación calidad / nivel de compresión
+
+Procedemos a calcular los errores MSE y MAE, y el PSNR entre la imagen original y las imágenes reconstruidas.
 
 ```{r 3_3_1_errores_en_ejemplo_3_1, echo=FALSE}
 print("Error filtro paso bajo:")
@@ -793,8 +816,9 @@ print("Error filtro paso bajo por filas:")
 calc_errores(matriz_imagen, matriz_filas_colores)
 ```
 
-A vista de los resultados obtenidos, la compresión que usa el filtro de paso bajo con el umbral aplicado a la transformada Wavelet discreta en 2D es el que proporciona mayor calidad de imagen, seguido de la compresión que usa el filtro de paso bajo aplicado a la transformada Wavelet discreta en 2D.
+Tras obtener los resultados, notamos que la compresión que usa el filtro de paso bajo con el umbral aplicado a la transformada wavelet discreta en 2D es el que proporciona la mayor calidad de imagen (cuanto menor sea el cuantil, más calidad se conserva), seguido de la compresión que usa el filtro de paso bajo aplicado a la transformada wavelet discreta en 2D.
 
+Ahora, se procede a generar una tabla que contiene información sobre el MSE, MAE y PSNR entre cada imagen en color y la imagen reconstruida obtenida a partir de esta con el método 1 (usando el filtro `filtro2d_paso_bajo`) o el método 2 (usando el filtro `filtro2d_paso_bajo2` y eligiendo el cuantil 0.7).
 
 ```{r 3_3_2_tabla_errores_imagenesRGB, echo=FALSE}
 imags <- list(arbol_01, arbol_03, perro_01, flor_01, flor_02, planta_01, pinas_01, gato_01)
@@ -828,7 +852,8 @@ colnames(tabla_info) <- cols
 ```{r 3_3_3_ver_tabla_errores_imagenesRGB, echo=FALSE}
 print(tabla_info)
 ```
-Explicar método 1 y 2
+
+A continuación, procedemos a comprimir y a reconstruir una imagen en blanco y negro, utilizando los dos filtros que actúan sobre la transformada wavelet discreta en 2D de la imagen. El segundo filtro, se probará para varios cuantiles (0.5, 0.7 y 0.9).
 
 ```{r 3_3_4_ejemplo_bn, echo=FALSE}
 matriz_imagen <- gato_02_filtro
@@ -846,31 +871,39 @@ imagen_comp23 <- filtrar_dwt(dwt_imagen, TRUE, TRUE, q[3])
 imagen_rec23 <- reconstruir_imag(imagen_comp23, TRUE, dim)
 ```
 
-Procedemos a mostrar la imagen original, la imagen comprimida con el filtro de paso bajo reconstruida, y la imagen comprimida con el filtro de paso bajo utilizando el umbral reconstruida.
+Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo reconstruida, y las imágenes comprimidas con el filtro de paso bajo utilizando el umbral reconstruidas.
 
-```{r 3_3_5_ver_ejemplo_bn, echo=FALSE}
-grid.newpage()
-print("Imagen Original")
-grid.raster(matriz_imagen / 255)
+Reconstrucción usando el primer filtro:
 
+```{r 3_3_5_ejemplo_bn_1, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 1")
 grid.raster(imagen_rec1 / 255)
+```
 
+Reconstrucción usando el segundo filtro con `q = 0.5`:
+
+```{r 3_3_5_ejemplo_bn_2, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 2, q = 0.5")
 grid.raster(imagen_rec21 / 255)
+```
 
+Reconstrucción usando el segundo filtro con `q = 0.7`:
+
+```{r 3_3_5_ejemplo_bn_3, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 2, q = 0.7")
 grid.raster(imagen_rec22 / 255)
+```
 
+Reconstrucción usando el segundo filtro con `q = 0.9`:
+
+```{r 3_3_5_ejemplo_bn_4, echo=FALSE}
 grid.newpage()
-print("Reconstrucción usando el filtro 2, q = 0.9")
 grid.raster(imagen_rec23 / 255)
 ```
 
-```{r 3_3_6_errores_ejemplo_bn}
+Procedemos a calcular los errores MSE y MAE, y el PSNR entre la imagen original y las imágenes reconstruidas.
+
+```{r 3_3_6_errores_ejemplo_bn, echo=FALSE}
 print("Error filtro paso bajo:")
 calc_errores(matriz_imagen, imagen_rec1, TRUE)
 print("Error filtro paso bajo 2, q = 0.5:")
@@ -880,6 +913,8 @@ calc_errores(matriz_imagen, imagen_rec22, TRUE)
 print("Error filtro paso bajo 2, q = 0.9:")
 calc_errores(matriz_imagen, imagen_rec23, TRUE)
 ```
+
+Ahora, se procede a generar una tabla que contiene información sobre el MSE, MAE y PSNR entre cada imagen en blanco y negro y la imagen reconstruida obtenida a partir de esta con el método 1 (usando el filtro `filtro2d_paso_bajo`) o el método 2 (usando el filtro `filtro2d_paso_bajo2` y eligiendo el cuantil 0.7).
 
 ```{r 3_3_2_tabla_errores_imagenesBN, echo=FALSE}
 imags <- list(flor_04_filtro, flor_05_filtro, peluche_01_filtro, gato_02_filtro)
