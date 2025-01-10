@@ -1517,8 +1517,8 @@ error_compresion <- function(vid1, vid2) {
 
 Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "estatico".
 
-```{r 6_b_comparacion_errores, echo=FALSE}
-cat("Método: Fotograma a fotograma sin compresión.","\n")
+```{r 6_b_comparacion_errores_estatico, echo=FALSE}
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
 error_compresion(normalized_matrices_list[[1]],estatico_base)
 cat("\n","Método: Matrices transicionales sin compresión.","\n")
 error_compresion(normalized_matrices_list[[1]],estatico_base_trans)
@@ -1526,9 +1526,9 @@ cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
 error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo)
 cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
 error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo_trans)
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2.","\n")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
 error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2)
-cat("\n","Método: Matrices transicionales con filtro de paso bajo 2.","\n")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
 error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2_trans)
 cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.","\n")
 error_compresion(normalized_matrices_list[[1]],comprimido_concat_2d)
@@ -1540,8 +1540,8 @@ Todos los métodos tienen un error relativamente bajo, que indica que los métod
 
 Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "giro".
 
-```{r 6_b_comparacion_errores, echo=FALSE}
-cat("Método: Fotograma a fotograma sin compresión.","\n")
+```{r 6_b_comparacion_errores_giro, echo=FALSE}
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
 error_compresion(normalized_matrices_list[[2]],giro_base)
 cat("\n","Método: Matrices transicionales sin compresión.","\n")
 error_compresion(normalized_matrices_list[[2]],giro_base_trans)
@@ -1549,24 +1549,73 @@ cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
 error_compresion(normalized_matrices_list[[2]],giro_paso_bajo)
 cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
 error_compresion(normalized_matrices_list[[2]],giro_paso_bajo_trans)
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2.","\n")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
 error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2)
-cat("\n","Método: Matrices transicionales con filtro de paso bajo 2.","\n")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
 error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2_trans)
 ```
 
 De nuevo, vemos que la compresión no ha afectado gravemente a la fidelidad del vídeo. Además, sorprendentemente, no parece que el método transicional haya afectado mucho a la calidad del último fotograma.
 
-### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
+### c. Analizar el nivel de compresión.
+
+Nuestros métodos de compresión funcionaban sustituyendo puntos de las matrices de detalle y aproximación de nuestra transformada wavelet por 0. Así, para medir el grado de compresión de cada método, calcularemos el porcentaje de ceros existentes en nuestros coeficientes wavelet.
+
+La siguiente función tiene este propósito.
 
 ```{r 6_c_medición_compresion, echo=FALSE}
-
+proporcion_ceros <- function(wavelet_comprimido, nivel=2) {
+  zeros <- 0
+  for (i in 1:length(wavelet_comprimido)) {
+    for (j in 1:3){
+      for (k in 1:3*nivel){
+        zeros <- zeros + sum(wavelet_comprimido[[i]][[j]][[k]] == 0)
+      }
+    }
+  }
+  proporcion <- zeros/(((dim(wavelet_comprimido[[1]][[1]][[1]])[1]*2)^2)*length(wavelet_comprimido))
+  return(proporcion)
+}
 ```
+
+A continuación, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo estatico.
 
 ```{r 6_c_comparacion_compresion, echo=FALSE}
-
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[1]])*100,"%")
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt_trans_2d_videos[[1]])*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo_trans)*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2_trans)*100,"%")
 ```
 
+Por comprobar que nuestro código es consisitente, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo giro.
 
+```{r 6_c_comparacion_compresion, echo=FALSE}
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[2]])*100,"%")
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt_trans_2d_videos[[2]])*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo_trans)*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo2)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo2_trans)*100,"%")
+```
+
+Como podemos observar, apenas hay compresión cuando no aplicamos ningún método de compresión, obviamente. El pequeño porcentaje tan solo aparece por la presencia de ceros naturales en los coeficientes.
+
+Por otro lado, el filtro de paso bajo usual aplica una compresión de alrededor de 75%, ya que elimina tres submatrices de detalle de la mitad de la longitud original.
+
+Por último, el filtro de paso bajo aplica una compresión de un 37%, aunque este factor es completamente dependiente de nuestro umbral de compresión aplicado. Podría ser tan bajo como 0%, o tan alto como 75%.
 
 
