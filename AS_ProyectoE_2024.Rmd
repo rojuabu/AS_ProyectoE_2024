@@ -21,6 +21,7 @@ library(wavelets)
 library(waveslim)
 library(raster)
 library(grid)
+library(gridExtra)
 library(av)
 ```
 
@@ -952,11 +953,13 @@ print(tabla_info2)
 
 # 5. Importación de vídeos y preacondicionamiento
 
-En este apartado se repite el proceso anterior para vídeos, compuesto por una secuencia de imágenes y de un segmento de audio por igual. 
+Para esta nueva sección se prueba a emplear la transformada wavelet a vídeos. En general, un vídeo se compone de una sucesión de fotogramas (imágenes) que se reproducen a una velocidad determinada. Por ello, simplemente implica realizar el trabajo realizado en los apartados anteriores para cada fotograma del vídeo.
+
+En esta primera sección se encarga de importar los vídeos, extraer los fotogramas según los fps indicados, transformarlos en matrices RGB y reescalar la matriz a una cuadrada para posteriomente poder aplicar la funció wavelet.
 
 ### a. Importación de video
 
-```{r 4_1_1_importar_fichero_videos, echo=FALSE}
+```{r 5_1_1_importar_fichero_videos, echo=FALSE}
 # Directorio objetivo
 video_dir <- "videos"
 
@@ -972,14 +975,14 @@ if (length(video_files) == 0) {
 }
 
 # Selección de video a procesar (en este caso el 1º)
-video_path <- video_files[1]
+#video_path <- video_files[1]
 ```
 
-```{r 4_1_2_fun_extraccion_fotogramas, echo=FALSE}
+```{r 5_1_2_fun_extraccion_fotogramas, echo=FALSE}
 # Extraer fotogramas
-extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cuidado. Si se pone un valor muy alto, se pueden generar demasiados fotogramas y saturar la memoria.
+extract_frames <- function(video_path, fps = 1) { #Manejar FPs con cuidado. Si se escala a un valor muy alto, se pueden generar demasiados fotogramas y saturar la memoria.
   # Extraer fotogramas como raw binary
-  frames_raw <- av::av_video_images(video = video_path, format = "png", fps = fps)
+  frames_raw <- invisible(av::av_video_images(video = video_path, format = "png", fps = fps))
   
   # Convertir raw binary a imágenes magick
   frames <- lapply(frames_raw, magick::image_read)
@@ -987,45 +990,41 @@ extract_frames_in_memory <- function(video_path, fps = 1) { #Manejar FPs con cui
 }
 ```
 
-```{r 4_1_3_extraccion_fotogramas, echo=FALSE}
-frames <- extract_frames_in_memory(video_path)
+Primero se emplea la función (`extract_frames`) que se encarga de extraer los fotogramas de un vídeo a partir de un "path" y la tasa de fotogramas de captura usando la librería "av". A partir del parámetro de fps, el algoritmo extrae la misma cantidad de fotogramas por segundo. Como resultado, devuelve la lista con los fotogramas extraídos ordenados.  
 
-# Mostrar número de fotogramas extraídos
-cat("Se extrajeron", length(frames), "fotogramas del vídeo (en memoria).\n")
 
-# Visualizar un ejemplo de fotograma
-print(frames[[1]])
-```
-```{r 4_1_4_fun_extraccion_audio, echo=FALSE}
-# Función para extraer el audio de un video 
-extract_and_save_audio <- function(video_path) {
-  # Generar el nombre del archivo de audio basado en el nombre del video
-  audio_filename <- paste0(tools::file_path_sans_ext(basename(video_path)), ".mp3")
-  output_audio_path <- file.path("audiovideo", audio_filename)
+
+```{r 5_1_3_extraccion_fotogramas, echo=FALSE}
+# Extraer fotogramas de cada video del fichero
+videoframes_list <- c()
+for (i in video_files){
+  frames <- extract_frames(i)
+
+  # Mostrar número de fotogramas extraídos
+  cat("Se extrajeron", length(frames), "fotogramas del vídeo.\n")
+
+  #Añadir a lista de fotogramas
+  videoframes_list <- c(videoframes_list, list(frames))
   
-  # Extraer y guardar el audio
-  av::av_audio_convert(video_path,output_audio_path)
+  }
   
-  # Retornar la ruta del archivo de audio
-  return(output_audio_path)
-}
+```
+Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. Para el primer vídeo de 13 segundos, se extraen un total de 13 fotogramas con un parámetro de 1 asignado a fps. Para el segundo, se observa un total de 8 fotogramas extraídos para una duración de 8 segundos.
+
+```{r 5_1_3_1_visualizacion_fotogramas_extraidos, echo=TRUE}
+# Visualizar fotogramas extraídos para un video específico
+
+  grobs <- lapply(videoframes_list[[1]], grid::rasterGrob)
+  grid.arrange(grobs = grobs, nrow = 4, ncol = 4)
 
 ```
+Este es un ejemplo de los fotogramas extraídos para el primer video, con un total de 13.
 
-```{r 4_1_5_extraccion_audio, echo=FALSE}
-#Test de función
-audio <- extract_and_save_audio(video_path)
-
-# Mostrar detalles 
-cat("Audio extraído en memoria:\n")
-print(str(audio))
-
-```
 
 
 ### b.  Transformar vídeos a matrices RGB: (Width X Height X 3 X #Fotogramas )
 
-```{r 4_2_1_fun_frames_a_matrices, echo=FALSE}
+```{r 5_2_1_fun_frames_a_matrices, echo=TRUE}
 # Convertir imágenes en memoria a matrices RGB
 convert_frames_to_rgb <- function(frames) {
   rgb_matrices <- lapply(frames, function(img) {
@@ -1040,9 +1039,7 @@ convert_frames_to_rgb <- function(frames) {
     if (length(dims) != 3 || dims[3] != 3) {
       stop("La imagen debe ser RGB con exactamente 3 canales (R, G, B).")
     }
-    
-    # Normalizar los valores de 0-255 a 0-1
-    rgb_matrix <- img_array / 255
+    rgb_matrix <- img_array
     return(rgb_matrix)
     })
   rgb_matrices
@@ -1051,19 +1048,23 @@ convert_frames_to_rgb <- function(frames) {
 
 ```
 
-```{r 4_2_2_frames_a_matrices, echo=FALSE}
-# Convertir los fotogramas extraídos
-rgb_matrices_in_memory <- convert_frames_to_rgb(frames)
+La siguiente función (`convert_frames_to_rgb`) cumple la simple función de transformar las imágenes a matrices convencionales RGB. Para ello, se convierte la imagen a un array de píxeles y se obtienen las dimensiones del array. Posteriormente, se verifica que la imagen tenga 3 canales (R, G, B) y se devuelve la matriz RGB.
 
-# Ejemplo del resultado con un fotograma
-cat("Dimensiones de un fotograma como matriz RGB:\n")
-print(dim(rgb_matrices_in_memory[[1]]))
+```{r 5_2_2_frames_a_matrices, echo=FALSE}
+#Convertir fotogramas de la lista a matrices RGB
 
+rgb_matrices_list <- c()
+
+for (i in videoframes_list){
+  rgb_matrices_list <- c(rgb_matrices_list, list(convert_frames_to_rgb(i)))
+}
 ```
+
+
 
 ### c.  Normalizar las matrices RGB 
 
-```{r 4_3_1_fun_redimensionar_matrices, echo=FALSE}
+```{r 5_3_1_fun_redimensionar_matrices, echo=FALSE}
 normalize_matrices <- function(rgb_matrices, target_width = 256, target_height = 256) {
   # Verificar que la librería 'magick' está cargada
   if (!requireNamespace("magick", quietly = TRUE)) {
@@ -1102,19 +1103,26 @@ normalize_matrices <- function(rgb_matrices, target_width = 256, target_height =
 }
 ```
 
+Siguiendo con la función (`normalize_matrices`). Se encarga de normalizar las matrices RGB a un tamaño objetivo. Para ello, se verifica que la matriz sea una matriz RGB válida, se convierte la matriz a un objeto magick, se redimensiona la imagen al tamaño objetivo, se convierte de nuevo la imagen a una matriz RGB normalizada en rango [0, 1] y se elimina el canal alfa si existe (reduciendo la matriz a 3 canales: R, G, B). Esto asegura que la matriz sea cuadrada, una de las condiciones necesarias para poder aplicar la función wavelet.
 
-```{r 4_3_2_normalizar_matrices, echo=FALSE}
-# Normalizar los fotogramas extraídos
-normalized_matrices <- normalize_matrices(rgb_matrices_in_memory)
+
+
+```{r 5_3_2_normalizar_matrices, echo=FALSE}
+
+normalized_matrices_list <- c()
+
+for (i in rgb_matrices_list){
+  normalized_matrices_list <- c(normalized_matrices_list, list(normalize_matrices(i)))
+}
 
 # Mostrar dimensiones normalizadas
 cat("Dimensiones normalizadas de un fotograma:\n")
-print(dim(normalized_matrices[[1]]))
+print(dim(normalized_matrices_list[[1]][[1]]))
 
 ```
 
 
-```{r 4_3_4_visualizar_matrices_RGB, echo=FALSE}
+```{r 5_3_4_visualizar_matrices_RGB, echo=TRUE}
 visualizar_imagen_RGB <- function(matriz_RGB) {
   # Verificar que la matriz tiene tres dimensiones con la última dimensión de tamaño 3
   if (length(dim(matriz_RGB)) != 3 || dim(matriz_RGB)[3] != 3) {
@@ -1131,23 +1139,31 @@ visualizar_imagen_RGB <- function(matriz_RGB) {
   img <- magick::image_read(as.raster(matriz_RGB))
   
   # Mostrar la imagen
-  print(img)
+  #print(img)
+  grid.newpage()
+  grid.raster(img)
 }
 
-visualizar_imagen_RGB(normalized_matrices[[1]])
+visualizar_imagen_RGB(normalized_matrices_list[[1]][[1]])
 ```
-Ahora sí, transformamos los vídeos al formato que más útil nos será:
+
+
+Esta última función (`visualizar_imagen_RGB`) se encarga de dar una última comprobación de requisitos para la matriz RBG y representa la imagen una vez ya redimensionada para comprobar que todo ha sido correcto.
+
+
+DEJO ESTO DE CÓDIGO POR SI ACASO, PERO BORRAR COMENTADO SI NO HACE FALTA DESPUÉS
 
 ```{r}
-videos_matrix_norm <- c()
-for (names in video_files){  #Iteramos sobre cada video
-    aux_frames <- extract_frames_in_memory(names, fps = 1)
-    aux_rgb <- convert_frames_to_rgb(aux_frames)
-    aux_norm <- normalize_matrices(aux_rgb)
-    videos_matrix_norm <- c( videos_matrix_norm , list(aux_norm) )
-}
+#videos_matrix_norm <- c()
+#for (names in video_files){  #Iteramos sobre cada video
+    #aux_frames <- extract_frames_in_memory(names, fps = 1)
+    #aux_rgb <- convert_frames_to_rgb(aux_frames)
+    #aux_norm <- normalize_matrices(aux_rgb)
+    #videos_matrix_norm <- c( videos_matrix_norm , list(aux_norm) )
+#}
 ```
 
+Con esta última finalización se termina el proceso de carga y preacondicionado de los vídeos. Se ha conseguido extraer los fotogramas de los vídeos, transformarlos en matrices RGB y reescalar las matrices a una cuadrada para poder aplicar la función wavelet en los posteriores apartados.
 
 # 6. Aplicación de Transformadas wavelet:
 
@@ -1172,9 +1188,9 @@ aplic_dwt_concat_video <- function(video_frames, bn, filtro, nivel){
 dwt2d_videos <- c()
 dwt_concat_videos<- c()
 
-for (i in 1:length(videos_matrix_norm)){  #Iteramos sobre cada video
-    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( videos_matrix_norm[[i]], bn=FALSE, wf = "haar", nivel=2) ) )
-    dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( videos_matrix_norm[[i]], bn=FALSE, filtro = "haar", nivel=2) ) )
+for (i in 1:length(normalized_matrices_list)){  #Iteramos sobre cada video
+    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( normalized_matrices_list[[i]], bn=FALSE, wf = "haar", nivel=2) ) )
+    dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( normalized_matrices_list[[i]], bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
 La variable dwt2d_videos es una lista que contiene:
@@ -1198,11 +1214,11 @@ Con este objetivo preparamos el cálculo de la transformada wavelet de las trans
 dwt_trans_2d_videos <- c()
 dwt_trans_concat_videos <- c()
 
-for (j in 1:length(videos_matrix_norm)){  #Iteramos sobre cada video
+for (j in 1:length(normalized_matrices_list)){  #Iteramos sobre cada video
     
-    aux_trans <-  list( videos_matrix_norm[[j]][[1]] )
-    for (i in 1:(length(aux_frames) -1 )){
-      aux_trans <- c( aux_trans , list( videos_matrix_norm[[j]][[i+1]] - videos_matrix_norm[[j]][[i]] )  )
+    aux_trans <-  list( normalized_matrices_list[[j]][[1]] )
+    for (i in 1:(length(videoframes_list[[j]]) -1 )){
+      aux_trans <- c( aux_trans , list( normalized_matrices_list[[j]][[i+1]] - normalized_matrices_list[[j]][[i]] )  )
     }
     dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, wf = "haar", nivel=2) ) )
     dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
@@ -1421,14 +1437,14 @@ split_frames <- function(concatenated_image, frame_height=256, frame_width=256) 
 
 ```{r concatenate_and_split_pruebas_1, echo=FALSE, include=FALSE}
 
-concatenated_frames <- concatenate_frames(videos_matrix_norm[[1]])
+concatenated_frames <- concatenate_frames(normalized_matrices_list[[1]])
 visualizar_imagen_RGB(concatenated_frames)
 
 ```
 
 ```{r concatenate_and_split_pruebas_2, echo=FALSE, include=FALSE}
-rows <- nrow(aux_norm[[1]])
-cols <- ncol(aux_norm[[1]])
+rows <- nrow(normalized_matrices_list[[1]][[1]])
+cols <- ncol(normalized_matrices_list[[1]][[1]])
 lista <- split_frames(concatenated_frames, rows , cols )
 ```
 
@@ -1480,7 +1496,7 @@ rotate_frames_90 <- function(frames) {
 
 ```{r comprimir_video_frames_concatenados_prueba_1}
 
-comprimido<-compress_video_concat_frames(videos_matrix_norm[[1]] )
+comprimido<-compress_video_concat_frames(normalized_matrices_list[[1]] )
 
 comprimido_concat_2d <- comprimido[[1]]  #Comprime la cuadrícula de fotogramas mediante dwt.2d
 comprimido_concat_1d <- comprimido[[2]]  #Comprime la cuadrícula de fotogrames mediante la dwt 1d al vector que concatena los píxeles
@@ -1515,21 +1531,21 @@ Veamos ahora el error que se obtiene al aplicar cada método de compresión.
 
 ```{r 6_b_comparacion_errores, echo=FALSE}
 print("Método: Fotograma a fotograma sin compresión.")
-error_compresion(normalized_matrices,video_base)
+error_compresion(normalized_matrices_list[[1]],video_base)
 print("Método: Matrices transicionales sin compresión.")
-error_compresion(normalized_matrices,video_base_trans)
+error_compresion(normalized_matrices_list[[1]],video_base_trans)
 print("Método: Fotograma a fotograma con filtro de paso bajo.")
-error_compresion(normalized_matrices,video_paso_bajo)
+error_compresion(normalized_matrices_list[[1]],video_paso_bajo)
 print("Método: Matrices transicionales con filtro de paso bajo.")
-error_compresion(normalized_matrices,video_paso_bajo_trans)
+error_compresion(normalized_matrices_list[[1]],video_paso_bajo_trans)
 print("Método: Fotograma a fotograma con filtro de paso bajo 2.")
-error_compresion(normalized_matrices,video_paso_bajo_2)
+error_compresion(normalized_matrices_list[[1]],video_paso_bajo_2)
 print("Método: Matrices transicionales con filtro de paso bajo 2.")
-error_compresion(normalized_matrices,video_paso_bajo_2_trans)
+error_compresion(normalized_matrices_list[[1]],video_paso_bajo_2_trans)
 print("Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.")
-error_compresion(normalized_matrices,comprimido_concat_2d)
+error_compresion(normalized_matrices_list[[1]],comprimido_concat_2d)
 print("Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado")
-error_compresion(normalized_matrices,comprimido_concat_1d)
+error_compresion(normalized_matrices_list[[1]],comprimido_concat_1d)
 ```
 
 ### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
