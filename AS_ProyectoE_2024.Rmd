@@ -1006,7 +1006,7 @@ for (i in video_files){
 ```
 Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. Para el primer vídeo de 13 segundos, se extraen un total de 13 fotogramas con un parámetro de 1 asignado a fps. Para el segundo, se observa un total de 8 fotogramas extraídos para una duración de 8 segundos.
 
-```{r 5_1_3_1_visualizacion_fotogramas_extraidos, echo=TRUE}
+```{r 5_1_3_1_visualizacion_fotogramas_extraidos, echo=FALSE}
 # Visualizar fotogramas extraídos para un video específico
 
   grobs <- lapply(videoframes_list[[1]], grid::rasterGrob)
@@ -1016,7 +1016,7 @@ Este es un ejemplo de los fotogramas extraídos para el primer video, con un tot
 
 ### b.  Transformar vídeos a matrices RGB: (Width X Height X 3 X #Fotogramas )
 
-```{r 5_2_1_fun_frames_a_matrices, echo=TRUE}
+```{r 5_2_1_fun_frames_a_matrices, echo=FALSE}
 # Convertir imágenes en memoria a matrices RGB
 convert_frames_to_rgb <- function(frames) {
   rgb_matrices <- lapply(frames, function(img) {
@@ -1109,7 +1109,7 @@ print(dim(normalized_matrices_list[[1]][[1]]))
 
 ```
 
-```{r 5_3_4_visualizar_matrices_RGB, echo=TRUE}
+```{r 5_3_4_visualizar_matrices_RGB, echo=FALSE}
 visualizar_imagen_RGB <- function(matriz_RGB) {
   # Verificar que la matriz tiene tres dimensiones con la última dimensión de tamaño 3
   if (length(dim(matriz_RGB)) != 3 || dim(matriz_RGB)[3] != 3) {
@@ -1136,19 +1136,6 @@ visualizar_imagen_RGB(normalized_matrices_list[[1]][[1]])
 
 
 Esta última función (`visualizar_imagen_RGB`) se encarga de dar una última comprobación de requisitos para la matriz RBG y representa la imagen una vez ya redimensionada para comprobar que todo ha sido correcto.
-
-
-DEJO ESTO DE CÓDIGO POR SI ACASO, PERO BORRAR COMENTADO SI NO HACE FALTA DESPUÉS
-
-```{r}
-#videos_matrix_norm <- c()
-#for (names in video_files){  #Iteramos sobre cada video
-    #aux_frames <- extract_frames_in_memory(names, fps = 1)
-    #aux_rgb <- convert_frames_to_rgb(aux_frames)
-    #aux_norm <- normalize_matrices(aux_rgb)
-    #videos_matrix_norm <- c( videos_matrix_norm , list(aux_norm) )
-#}
-```
 
 Con esta última finalización se termina el proceso de carga y preacondicionado de los vídeos. Se ha conseguido extraer los fotogramas de los vídeos, transformarlos en matrices RGB y reescalar las matrices a una cuadrada para poder aplicar la función wavelet en los posteriores apartados.
 
