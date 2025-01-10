@@ -1,18 +1,20 @@
 ---
-title: "AS_ProyectoE_2024"
+title: "Compresión de imagen y video mediante transformada wavelet"
 author:
-  - name: Marcos Rosique
-  - name: Pablo Selma
-  - name: Víctor Mateu Izquierdo
-  - name: Marc Velasco Mateu
-  - name: Carlos Ribes García
-  - name: Rodrigo Juanes
+- name: Marcos Rosique
+- name: Pablo Selma
+- name: Víctor Mateu Izquierdo
+- name: Marc Velasco Mateu
+- name: Carlos Ribes García
+- name: Rodrigo Juanes
 date: "2024-12-24"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 ```
 
 ```{r, include=FALSE}
@@ -44,7 +46,7 @@ procesar_imagen <- function(ruta_imagen, tamano) {
 }
 ```
 
-```{r 1_1_2_procesar_imagenes, echo=TRUE}
+```{r 1_1_2_procesar_imagenes, echo=TRUE, include=FALSE}
 # Aplicar la función a cada imagen
 arbol_01 <- procesar_imagen("./images/arbol_01.jpg", "1024x1024!")
 arbol_03 <- procesar_imagen("./images/arbol_03.jpg", "1024x1024!")
@@ -67,8 +69,9 @@ peluche_01_filtro <- peluche_01_filtro[, , 1]
 gato_02_filtro <- gato_02_filtro[, , 1]
 ```
 
-Este sería un ejemplo de como convertir de array a imagen:
-```{r 1_1_3_ejemplo_array_a_imagen, echo=TRUE, warning=FALSE}
+
+```{r 1_1_3_ejemplo_array_a_imagen, echo=FALSE, include=FALSE ,warning=FALSE}
+#Este sería un ejemplo de como convertir de array a imagen:
 # Crear un objeto raster de la imagen
 imagen_raster <- brick(gato_01)
 
@@ -495,8 +498,8 @@ copia_filas_rojo <- filtro_filas_paso_bajo_color(copia_rojo, matriz_ceros)
 copia_filas_verde <- filtro_filas_paso_bajo_color(copia_verde, matriz_ceros)
 copia_filas_azul <- filtro_filas_paso_bajo_color(copia_azul, matriz_ceros)
 
-grid.newpage()
-grid.raster(perro_01/255)
+#grid.newpage()
+#grid.raster(perro_01/255)
 
 dimensiones <- c(dim(copia_filas_rojo), 3) # Las dimensiones de la matriz imagen aproximada (mismas filas y columnas que cualquiera de los tres canales [en este caso hemos tomado el rojo] y una profundidad de 3 [rojo, verde y azul])
 
@@ -577,8 +580,8 @@ comp_concatenada_filas_RGB <- function(matriz_imagen, filtro="haar", niveles=2){
 Aplicamos el algoritmo a los tres canales de color de nuestra imagen
 ```{r 2_2_2_aplicar_a_concatenar, echo=FALSE}
 
-grid.newpage()
-grid.raster(perro_01/255)
+#grid.newpage()
+#grid.raster(perro_01/255)
 
 dimensiones <- c(dim(copia_filas_rojo), 3)
 
@@ -588,7 +591,7 @@ grid.newpage()
 grid.raster(matriz_concatenada_colores/255)
 ```
 
-```{r 2_2_2_aplicar_a_concatenar_correccion, echo=FALSE}
+```{r 2_2_2_aplicar_a_concatenar_correccion, echo=FALSE, include=FALSE}
 matriz_imagen <- perro_01
 
 matriz_concatenada_rojo <- comp_concatenada_filas(perro_01[,,1])
@@ -596,8 +599,8 @@ matriz_concatenada_verde <- comp_concatenada_filas(perro_01[,,2])
 matriz_concatenada_azul <- comp_concatenada_filas(perro_01[,,3])
 
 
-grid.newpage()
-grid.raster(perro_01/255)
+#grid.newpage()
+#grid.raster(perro_01/255)
 
 dimensiones <- c(dim(copia_filas_rojo), 3)
 
@@ -1110,7 +1113,7 @@ print(dim(normalized_matrices_list[[1]][[1]]))
 
 ```
 
-```{r 5_3_4_visualizar_matrices_RGB, echo=TRUE}
+```{r 5_3_4_visualizar_matrices_RGB, echo=TRUE, include=FALSE}
 visualizar_imagen_RGB <- function(matriz_RGB) {
   # Verificar que la matriz tiene tres dimensiones con la última dimensión de tamaño 3
   if (length(dim(matriz_RGB)) != 3 || dim(matriz_RGB)[3] != 3) {
@@ -1132,26 +1135,11 @@ visualizar_imagen_RGB <- function(matriz_RGB) {
   grid.raster(img)
 }
 
-visualizar_imagen_RGB(normalized_matrices_list[[1]][[1]])
+#visualizar_imagen_RGB(normalized_matrices_list[[1]][[1]])
+
+#Esta última función (`visualizar_imagen_RGB`) se encarga de dar una última comprobación de requisitos para la matriz RBG y representa la #imagen una vez ya redimensionada para comprobar que todo ha sido correcto.
 ```
 
-
-Esta última función (`visualizar_imagen_RGB`) se encarga de dar una última comprobación de requisitos para la matriz RBG y representa la imagen una vez ya redimensionada para comprobar que todo ha sido correcto.
-
-
-DEJO ESTO DE CÓDIGO POR SI ACASO, PERO BORRAR COMENTADO SI NO HACE FALTA DESPUÉS
-
-```{r}
-#videos_matrix_norm <- c()
-#for (names in video_files){  #Iteramos sobre cada video
-    #aux_frames <- extract_frames_in_memory(names, fps = 1)
-    #aux_rgb <- convert_frames_to_rgb(aux_frames)
-    #aux_norm <- normalize_matrices(aux_rgb)
-    #videos_matrix_norm <- c( videos_matrix_norm , list(aux_norm) )
-#}
-```
-
-Con esta última finalización se termina el proceso de carga y preacondicionado de los vídeos. Se ha conseguido extraer los fotogramas de los vídeos, transformarlos en matrices RGB y reescalar las matrices a una cuadrada para poder aplicar la función wavelet en los posteriores apartados.
 
 # 6. Aplicación de Transformadas wavelet:
 
@@ -1244,11 +1232,11 @@ Además, estas compresiones y reconstrucciones se utilizaran de dos maneras dist
 
 De esta manera, tenemos 6 maneras distintas de reconstruir nuestro vídeo.
 
-Veamos las funciones en R que comprimen los coeficiente wavelet:
+Las funciones wavelet que filtran los coeficientes wavelet de video las basaremos en las respectivas que tienen la misma función para imagen.
 
-Compresión de paso bajo:
 
-```{r 6_a_funcion_compresion_paso_bajo, echo=TRUE}
+
+```{r 6_a_funcion_compresion_paso_bajo, echo=FALSE}
 #Aplicación de filtro paso bajo a un vídeo
 comp_vid_paso_bajo <- function(video_frames_wavelet){
   video_frames_wavelet_compressed <- list()
@@ -1262,9 +1250,9 @@ comp_vid_paso_bajo <- function(video_frames_wavelet){
 }
 ```
 
-Compresión de paso bajo 2 (Ajustable):
 
-```{r 6_a_funcion_compresion_paso_bajo2, echo=TRUE}
+
+```{r 6_a_funcion_compresion_paso_bajo2, echo=FALSE}
 #Aplicación de filtro paso bajo ajustable a un vídeo
 comp_vid_paso_bajo2 <- function(video_frames_wavelet, q){
   video_frames_wavelet_compressed <- list()
@@ -1280,7 +1268,7 @@ comp_vid_paso_bajo2 <- function(video_frames_wavelet, q){
 
 Por último, creamos una función capaz de recuperar el vídeo a partir de los frames comprimidos, ya sea de manera usual, o transicional.
 
-```{r 6_a_funcion_compresion_paso_bajo2, echo=TRUE}
+```{r 6_a_funcion_compresion_paso_bajo2_2, echo=TRUE}
 #Reconstrucción del vídeo comprimido
 rec_vid <- function(video_frames_wavelet_compressed, trans = FALSE){
   if (!trans) {
@@ -1344,9 +1332,10 @@ giro_paso_bajo2_trans <- rec_vid(giro_wavelet_comprimido_paso_bajo2_trans, trans
 
 Adicionalmente, aplicaremos un método "análogo" al que hemos visto anteriormente en una dimensión cuando concatenábamos las señales fila o columna de una matriz. Esta vez organizaremos los fotogramas en una cuadrícula suficientemente grande y calcularemos la transformada wavelet a esta imagen resultante, para posteriormente aplicar los filtros apropiados que nos darán la compresión de esta imagen. Una vez hecho esto podremos recuperar los fotogramas a partir de la imagen para recomponer el vídeo.
 
-En primer lugar hacemos las funciones que nos permiten concatenar y separar los fotogramas, siendo una función la "inversa" de la otra:
 
-```{r concatenate_and_split_frames_functions}
+
+```{r concatenate_and_split_frames_functions, include=FALSE}
+#En primer lugar hacemos las funciones que nos permiten concatenar y separar los fotogramas, siendo una función la "inversa" de la otra:
 concatenate_frames <- function(video_frames) {
   # Número total de frames
   num_frames <- length(video_frames)
@@ -1439,7 +1428,7 @@ cols <- ncol(normalized_matrices_list[[1]][[1]])
 lista <- split_frames(concatenated_frames, rows , cols )
 ```
 
-Ahora construimos EL algoritmo de compresión propiamente dicho:
+Vamos a construir el algoritmo de compresión propiamente dicho (las funciones concatenate_frames y split_frames son una la inversa de la otra y aglomeran o separan los fotogramas según se ha explicado anteriormente):
 
 ```{r comprimir_video_frames_concatenados}
 compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nivel=2 ){ #Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
@@ -1472,7 +1461,7 @@ compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nive
 }
 ```
 
-```{r transponer_90_grados}
+```{r transponer_90_grados, include=FALSE, echo=FALSE}
 rotate_frames_90 <- function(frames) {
   # Lista para almacenar los fotogramas rotados
   rotated_frames <- lapply(frames, function(frame) {
@@ -1484,7 +1473,7 @@ rotate_frames_90 <- function(frames) {
 }
 ```
 
-```{r comprimir_video_frames_concatenados_prueba_1}
+```{r comprimir_video_frames_concatenados_prueba_1, include=FALSE}
 comprimido <- compress_video_concat_frames(normalized_matrices_list[[1]] )
 
 comprimido_concat_2d <- comprimido[[1]]  #Comprime la cuadrícula de fotogramas mediante dwt.2d
@@ -1513,27 +1502,43 @@ error_compresion <- function(vid1, vid2) {
   cat("El error cuadrático entre los dos videos es",mse_vid(vid1, vid2),"\n")
   cat("El error cuadrático en el último fotograma es",mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE),"\n")
 }
+
+error_compresion_silent <- function(vid1, vid2) {
+  return( list(MSE_vid = mse_vid(vid1, vid2), MSE_last= mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE)))
+}
 ```
 
 Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "estatico".
 
 ```{r 6_b_comparacion_errores_estatico, echo=FALSE}
-cat("","Método: Fotograma a fotograma sin compresión.","\n")
-error_compresion(normalized_matrices_list[[1]],estatico_base)
-cat("\n","Método: Matrices transicionales sin compresión.","\n")
-error_compresion(normalized_matrices_list[[1]],estatico_base_trans)
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
-error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo)
-cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
-error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo_trans)
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
-error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2)
-cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
-error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2_trans)
-cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.","\n")
-error_compresion(normalized_matrices_list[[1]],comprimido_concat_2d)
-cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado","\n")
-error_compresion(normalized_matrices_list[[1]],comprimido_concat_1d)
+#cat("","Método: Fotograma a fotograma sin compresión.","\n")
+#error_compresion(normalized_matrices_list[[1]],estatico_base)
+#cat("\n","Método: Matrices transicionales sin compresión.","\n")
+#error_compresion(normalized_matrices_list[[1]],estatico_base_trans)
+#cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+#error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo)
+#cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+#error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo_trans)
+#cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+#error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2)
+#cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+#error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2_trans)
+#cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.","\n")
+#error_compresion(normalized_matrices_list[[1]],comprimido_concat_2d)
+#cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado","\n")
+#error_compresion(normalized_matrices_list[[1]],comprimido_concat_1d)
+
+comp_errores_estatico <- data.frame( rbind(
+c("Fotograma a fotograma sin compresión" , error_compresion_silent(normalized_matrices_list[[2]],estatico_base)),
+c("Matrices transicionales sin compresión" , error_compresion_silent(normalized_matrices_list[[2]],estatico_base_trans)),
+c("Fotograma a fotograma con filtro de paso bajo",error_compresion_silent(normalized_matrices_list[[2]],estatico_paso_bajo)),
+c("Matrices transicionales con filtro de paso bajo",error_compresion_silent(normalized_matrices_list[[2]],estatico_paso_bajo_trans)),
+c("Fotograma a fotograma con filtro de paso bajo 2 al 0.5.",error_compresion_silent(normalized_matrices_list[[2]],estatico_paso_bajo2)),
+c("Fotograma a fotograma con filtro de paso bajo 2 al 0.5", error_compresion_silent(normalized_matrices_list[[2]],estatico_paso_bajo2_trans)),
+c("Cuadrícula de fotogramas dwt.2d" , error_compresion_silent(normalized_matrices_list[[2]],comprimido_concat_2d)),
+c("Cuadrícula de fotogramas dwt 1d" , error_compresion_silent(normalized_matrices_list[[2]],comprimido_concat_1d))   ) )
+names(comp_errores_estatico)<- c("Método","Error")
+print(comp_errores_estatico[1:2])
 ```
 
 Todos los métodos tienen un error relativamente bajo, que indica que los métodos de compresión son capaces de mantener la fidelidad del video original.
@@ -1541,18 +1546,30 @@ Todos los métodos tienen un error relativamente bajo, que indica que los métod
 Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "giro".
 
 ```{r 6_b_comparacion_errores_giro, echo=FALSE}
-cat("","Método: Fotograma a fotograma sin compresión.","\n")
-error_compresion(normalized_matrices_list[[2]],giro_base)
-cat("\n","Método: Matrices transicionales sin compresión.","\n")
-error_compresion(normalized_matrices_list[[2]],giro_base_trans)
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
-error_compresion(normalized_matrices_list[[2]],giro_paso_bajo)
-cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
-error_compresion(normalized_matrices_list[[2]],giro_paso_bajo_trans)
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
-error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2)
-cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
-error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2_trans)
+#cat("","Método: Fotograma a fotograma sin compresión.","\n")
+#error_compresion(normalized_matrices_list[[2]],giro_base)
+#cat("\n","Método: Matrices transicionales sin compresión.","\n")
+#error_compresion(normalized_matrices_list[[2]],giro_base_trans)
+#cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+#error_compresion(normalized_matrices_list[[2]],giro_paso_bajo)
+#cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+#error_compresion(normalized_matrices_list[[2]],giro_paso_bajo_trans)
+#cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+#error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2)
+#cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+#error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2_trans)
+
+comp_errores_giro <- data.frame( rbind(
+c("Fotograma a fotograma sin compresión" , error_compresion_silent(normalized_matrices_list[[2]],giro_base)),
+c("Matrices transicionales sin compresión" , error_compresion_silent(normalized_matrices_list[[2]],giro_base_trans)),
+c("Fotograma a fotograma con filtro de paso bajo",error_compresion_silent(normalized_matrices_list[[2]],giro_paso_bajo)),
+c("Matrices transicionales con filtro de paso bajo",error_compresion_silent(normalized_matrices_list[[2]],giro_paso_bajo_trans)),
+c("Fotograma a fotograma con filtro de paso bajo 2 al 0.5.",error_compresion_silent(normalized_matrices_list[[2]],giro_paso_bajo2)),
+c("Fotograma a fotograma con filtro de paso bajo 2 al 0.5", error_compresion_silent(normalized_matrices_list[[2]],giro_paso_bajo2_trans)),
+c("Cuadrícula de fotogramas dwt.2d" , error_compresion_silent(normalized_matrices_list[[2]],comprimido_concat_2d)),
+c("Cuadrícula de fotogramas dwt 1d" , error_compresion_silent(normalized_matrices_list[[2]],comprimido_concat_1d))) )
+names(comp_errores_giro)<- c("Método","Error")
+print(comp_errores_giro[1:2])
 ```
 
 De nuevo, vemos que la compresión no ha afectado gravemente a la fidelidad del vídeo. Además, sorprendentemente, no parece que el método transicional haya afectado mucho a la calidad del último fotograma.
@@ -1581,23 +1598,34 @@ proporcion_ceros <- function(wavelet_comprimido, nivel=2) {
 A continuación, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo estatico.
 
 ```{r 6_c_comparacion_compresion, echo=FALSE}
-cat("","Método: Fotograma a fotograma sin compresión.","\n")
-cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[1]])*100,"%")
-cat("\n","Método: Matrices transicionales sin compresión.","\n")
-cat("","Ratio de compresión:",proporcion_ceros(dwt_trans_2d_videos[[1]])*100,"%")
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
-cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo)*100,"%")
-cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
-cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo_trans)*100,"%")
-cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
-cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2)*100,"%")
-cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
-cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2_trans)*100,"%")
+#cat("","Método: Fotograma a fotograma sin compresión.","\n")
+#cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[1]])*100,"%")
+#cat("\n","Método: Matrices transicionales sin compresión.","\n")
+#cat("","Ratio de compresión:",proporcion_ceros(dwt_trans_2d_videos[[1]])*100,"%")
+#cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+#cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo)*100,"%")
+#cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+#cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo_trans)*100,"%")
+#cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+#cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2)*100,"%")
+#cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+#cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2_trans)*100,"%")
+
+prop_ceros <- data.frame( rbind(
+  c("Fotograma a fotograma sin compresión", proporcion_ceros(dwt2d_videos[[1]])*100 ),
+  c( "Matrices transicionales sin compresión", proporcion_ceros(dwt_trans_2d_videos[[1]])*100),
+  c( "Fotograma a fotograma con filtro de paso bajo", proporcion_ceros(estatico_wavelet_comprimido_paso_bajo)*100),
+  c( "Matrices transicionales con filtro de paso bajo", proporcion_ceros(estatico_wavelet_comprimido_paso_bajo_trans)*100),
+  c( "Fotograma a fotograma con filtro de paso bajo 2 al 0.5", proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2)*100),
+  c( "Matrices transicionales con filtro de paso bajo 2 al 0.5", proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2_trans)*100)
+))
+names(prop_ceros)<- c("Método","Ratio")
+print(prop_ceros)
 ```
 
 Por comprobar que nuestro código es consisitente, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo giro.
 
-```{r 6_c_comparacion_compresion, echo=FALSE}
+```{r 6_c_comparacion_compresion_2, echo=FALSE, include=FALSE}
 cat("","Método: Fotograma a fotograma sin compresión.","\n")
 cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[2]])*100,"%")
 cat("\n","Método: Matrices transicionales sin compresión.","\n")
@@ -1611,6 +1639,19 @@ cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_baj
 cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
 cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo2_trans)*100,"%")
 ```
+```{r, echo=FALSE}
+prop_ceros_2 <- data.frame( rbind(
+  c("Fotograma a fotograma sin compresión", proporcion_ceros(dwt2d_videos[[2]])*100 ),
+  c( "Matrices transicionales sin compresión", proporcion_ceros(dwt_trans_2d_videos[[2]])*100),
+  c( "Fotograma a fotograma con filtro de paso bajo", proporcion_ceros(giro_wavelet_comprimido_paso_bajo)*100),
+  c( "Matrices transicionales con filtro de paso bajo", proporcion_ceros(giro_wavelet_comprimido_paso_bajo_trans)*100),
+  c( "Fotograma a fotograma con filtro de paso bajo 2 al 0.5", proporcion_ceros(giro_wavelet_comprimido_paso_bajo2)*100),
+  c( "Matrices transicionales con filtro de paso bajo 2 al 0.5", proporcion_ceros(giro_wavelet_comprimido_paso_bajo2_trans)*100)
+))
+names(prop_ceros_2)<- c("Método","Ratio")
+print(prop_ceros_2)
+```
+
 
 Como podemos observar, apenas hay compresión cuando no aplicamos ningún método de compresión, obviamente. El pequeño porcentaje tan solo aparece por la presencia de ceros naturales en los coeficientes.
 
