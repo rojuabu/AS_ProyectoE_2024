@@ -1601,6 +1601,6 @@ Como podemos observar, apenas hay compresión cuando no aplicamos ningún métod
 
 Por otro lado, el filtro de paso bajo usual aplica una compresión de alrededor de 75%, ya que elimina tres submatrices de detalle de la mitad de la longitud original.
 
-Por último, el filtro de paso bajo aplica una compresión de un 37%, aunque este factor es completamente dependiente de nuestro umbral de compresión aplicado. Podría ser tan bajo como 0%, o tan alto como 75%.
+Por último, el filtro de paso bajo aplica una compresión de un 37%, aunque este factor es completamente dependiente de nuestro umbral de compresión aplicado. En nuestro caso, esta compresión es igual a 37% porqué hemos usado un factor de 0.5, es decir, la mitad de 75%, la máxima compresión previa.
 
 
