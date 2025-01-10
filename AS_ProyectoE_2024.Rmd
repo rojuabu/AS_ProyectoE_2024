@@ -1011,7 +1011,7 @@ Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. P
 # Visualizar fotogramas extraídos para un video específico
 
   grobs <- lapply(videoframes_list[[1]], grid::rasterGrob)
-  grid.arrange(grobs = grobs, nrow = 4, ncol = 4
+  grid.arrange(grobs = grobs, nrow = 4, ncol = 4)
 ```
 Este es un ejemplo de los fotogramas extraídos para el primer video, con un total de 13.
 
