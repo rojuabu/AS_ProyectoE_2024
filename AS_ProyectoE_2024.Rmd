@@ -1011,7 +1011,7 @@ Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. P
 # Visualizar fotogramas extraídos para un video específico
 
   grobs <- lapply(videoframes_list[[1]], grid::rasterGrob)
-  grid.arrange(grobs = grobs, nrow = 4, ncol = 4
+  grid.arrange(grobs = grobs, nrow = 4, ncol = 4)
 ```
 Este es un ejemplo de los fotogramas extraídos para el primer video, con un total de 13.
 
@@ -1308,22 +1308,38 @@ rec_vid <- function(video_frames_wavelet_compressed, trans = FALSE){
 }
 ```
 
-```{r 6_a_reconstruccion, echo=FALSE}
-video_base <- rec_vid(dwt2d_videos[[1]], trans = FALSE)
+```{r 6_a_compresion_y_reconstruccion, echo=FALSE}
+estatico_base <- rec_vid(dwt2d_videos[[1]], trans = FALSE)
 
-video_base_trans <- rec_vid(dwt_trans_2d_videos[[1]], trans = TRUE)
+estatico_base_trans <- rec_vid(dwt_trans_2d_videos[[1]], trans = TRUE)
 
-wavelet_comprimido_paso_bajo <- comp_vid_paso_bajo(dwt2d_videos[[1]])
-video_paso_bajo <- rec_vid(wavelet_comprimido_paso_bajo, trans = FALSE)
+estatico_wavelet_comprimido_paso_bajo <- comp_vid_paso_bajo(dwt2d_videos[[1]])
+estatico_paso_bajo <- rec_vid(estatico_wavelet_comprimido_paso_bajo, trans = FALSE)
 
-wavelet_comprimido_paso_bajo_trans <- comp_vid_paso_bajo(dwt_trans_2d_videos[[1]])
-video_paso_bajo_trans <- rec_vid(wavelet_comprimido_paso_bajo_trans, trans = TRUE)
+estatico_wavelet_comprimido_paso_bajo_trans <- comp_vid_paso_bajo(dwt_trans_2d_videos[[1]])
+estatico_paso_bajo_trans <- rec_vid(estatico_wavelet_comprimido_paso_bajo_trans, trans = TRUE)
 
-wavelet_comprimido_paso_bajo2 <- comp_vid_paso_bajo2(dwt2d_videos[[1]], q = 0.5)
-video_paso_bajo2 <- rec_vid(wavelet_comprimido_paso_bajo2, trans = FALSE)
+estatico_wavelet_comprimido_paso_bajo2 <- comp_vid_paso_bajo2(dwt2d_videos[[1]], q = 0.5)
+estatico_paso_bajo2 <- rec_vid(estatico_wavelet_comprimido_paso_bajo2, trans = FALSE)
 
-wavelet_comprimido_paso_bajo2_trans <- comp_vid_paso_bajo2(dwt_trans_2d_videos[[1]], q = 0.5)
-video_paso_bajo2_trans <- rec_vid(wavelet_comprimido_paso_bajo2_trans, trans = TRUE)
+estatico_wavelet_comprimido_paso_bajo2_trans <- comp_vid_paso_bajo2(dwt_trans_2d_videos[[1]], q = 0.5)
+estatico_paso_bajo2_trans <- rec_vid(estatico_wavelet_comprimido_paso_bajo2_trans, trans = TRUE)
+
+giro_base <- rec_vid(dwt2d_videos[[2]], trans = FALSE)
+
+giro_base_trans <- rec_vid(dwt_trans_2d_videos[[2]], trans = TRUE)
+
+giro_wavelet_comprimido_paso_bajo <- comp_vid_paso_bajo(dwt2d_videos[[2]])
+giro_paso_bajo <- rec_vid(giro_wavelet_comprimido_paso_bajo, trans = FALSE)
+
+giro_wavelet_comprimido_paso_bajo_trans <- comp_vid_paso_bajo(dwt_trans_2d_videos[[2]])
+giro_paso_bajo_trans <- rec_vid(giro_wavelet_comprimido_paso_bajo_trans, trans = TRUE)
+
+giro_wavelet_comprimido_paso_bajo2 <- comp_vid_paso_bajo2(dwt2d_videos[[2]], q = 0.5)
+giro_paso_bajo2 <- rec_vid(giro_wavelet_comprimido_paso_bajo2, trans = FALSE)
+
+giro_wavelet_comprimido_paso_bajo2_trans <- comp_vid_paso_bajo2(dwt_trans_2d_videos[[2]], q = 0.5)
+giro_paso_bajo2_trans <- rec_vid(giro_wavelet_comprimido_paso_bajo2_trans, trans = TRUE)
 ```
 
 Adicionalmente, aplicaremos un método "análogo" al que hemos visto anteriormente en una dimensión cuando concatenábamos las señales fila o columna de una matriz. Esta vez organizaremos los fotogramas en una cuadrícula suficientemente grande y calcularemos la transformada wavelet a esta imagen resultante, para posteriormente aplicar los filtros apropiados que nos darán la compresión de esta imagen. Una vez hecho esto podremos recuperar los fotogramas a partir de la imagen para recomponer el vídeo.
@@ -1477,17 +1493,17 @@ comprimido_concat_1d <- comprimido[[2]]  #Comprime la cuadrícula de fotogrames 
 
 ### b. Medición del error entre el video original y el comprimido.
 
-La manera más clara de medir el error entre un vídeo y su compresión, consiste en calcular el vídeo diferencia entre ambos, sumar todos los valores de todos los fotogramas con valor absoluto, y normalizar dependiendo de la resolución y el número de fotogramas.
+La manera más clara de medir el error entre un vídeo y su compresión consiste en calcular el error entre los fotogramas del vídeo y normalizar dependiendo del número de fotogramas.
 
 Sin embargo, dado que estamos utilizando métodos transicionales de compresión, es posible que el error se vaya acumulando de un fotograma a otro, resultando en un mayor error en el último fotograma.
 
 Así pues, nuestra medición del error tendrá dos partes, una donde se calculara la diferencia general entre el vídeo original y el comprimido, y otra donde se vea el error presente en el último fotograma.
 
-```{r 6_b_funcion_medición_error, echo=FALSE}
+```{r 6_b_funcion_medición_error, echo=TRUE}
 mse_vid <- function(vid1, vid2) {
   error <- 0
   for (i in 1:length(vid1)) {
-    error <- error + sqrt(mse_imags(vid1[[i]], vid2[[i]], bn = FALSE))
+    error <- error + mse_imags(vid1[[i]], vid2[[i]], bn = FALSE)
   }
   error <- error/(length(vid1))
   return(error)
@@ -1495,30 +1511,51 @@ mse_vid <- function(vid1, vid2) {
 
 error_compresion <- function(vid1, vid2) {
   cat("El error cuadrático entre los dos videos es",mse_vid(vid1, vid2),"\n")
-  cat("El error cuadrático en el último fotograma es",sqrt(mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE)),"\n")
+  cat("El error cuadrático en el último fotograma es",mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE),"\n")
 }
 ```
 
-Veamos ahora el error que se obtiene al aplicar cada método de compresión.
+Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "estatico".
 
 ```{r 6_b_comparacion_errores, echo=FALSE}
-print("Método: Fotograma a fotograma sin compresión.")
-error_compresion(normalized_matrices_list[[1]],video_base)
-print("Método: Matrices transicionales sin compresión.")
-error_compresion(normalized_matrices_list[[1]],video_base_trans)
-print("Método: Fotograma a fotograma con filtro de paso bajo.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo)
-print("Método: Matrices transicionales con filtro de paso bajo.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo_trans)
-print("Método: Fotograma a fotograma con filtro de paso bajo 2.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo_2)
-print("Método: Matrices transicionales con filtro de paso bajo 2.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo_2_trans)
-print("Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.")
+cat("Método: Fotograma a fotograma sin compresión.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_base)
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_base_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2_trans)
+cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.","\n")
 error_compresion(normalized_matrices_list[[1]],comprimido_concat_2d)
-print("Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado")
+cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado","\n")
 error_compresion(normalized_matrices_list[[1]],comprimido_concat_1d)
 ```
+
+Todos los métodos tienen un error relativamente bajo, que indica que los métodos de compresión son capaces de mantener la fidelidad del video original.
+
+Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "giro".
+
+```{r 6_b_comparacion_errores, echo=FALSE}
+cat("Método: Fotograma a fotograma sin compresión.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_base)
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_base_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2_trans)
+```
+
+De nuevo, vemos que la compresión no ha afectado gravemente a la fidelidad del vídeo. Además, sorprendentemente, no parece que el método transicional haya afectado mucho a la calidad del último fotograma.
 
 ### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
 
