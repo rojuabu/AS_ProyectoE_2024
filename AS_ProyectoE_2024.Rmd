@@ -1,16 +1,9 @@
 ---
-title: "Compresión de imagen y video mediante transformada wavelet"
-author:
-- name: Marcos Rosique
-- name: Pablo Selma
-- name: Víctor Mateu Izquierdo
-- name: Marc Velasco Mateu
-- name: Carlos Ribes García
-- name: Rodrigo Juanes
+title: "Compresión de imagen y video mediante transformada wavelet \n\n  Marcos Rosique, Pablo Selma, Víctor Mateu Izquierdo,Marc Velasco Mateu, Carlos Ribes García, Rodrigo Juanes"
 date: "2024-12-24"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -486,7 +479,7 @@ matriz_imagen <- perro_01
 copia_dwt_filas_color <- extraccion_wavelet_filas(matriz_imagen, filtro_wavelet="haar")
 ```
 
-```{r 2_1_2_ejemplo_1_2, echo=FALSE}
+```{r 2_1_2_ejemplo_1_2, echo=FALSE, out.width="50%"}
 matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
 
 # Asignamos a una variable cada uno de los tres canales, porque la función filtro_filas_paso_bajo_color trabaja sobre los canales individualmente, no sobre la matriz.
@@ -578,7 +571,7 @@ comp_concatenada_filas_RGB <- function(matriz_imagen, filtro="haar", niveles=2){
 
 
 Aplicamos el algoritmo a los tres canales de color de nuestra imagen
-```{r 2_2_2_aplicar_a_concatenar, echo=FALSE}
+```{r 2_2_2_aplicar_a_concatenar, echo=FALSE, out.width="50%"}
 
 #grid.newpage()
 #grid.raster(perro_01/255)
@@ -591,7 +584,7 @@ grid.newpage()
 grid.raster(matriz_concatenada_colores/255)
 ```
 
-```{r 2_2_2_aplicar_a_concatenar_correccion, echo=FALSE, include=FALSE}
+```{r 2_2_2_aplicar_a_concatenar_correccion, echo=FALSE, include=FALSE, out.width="50%"}
 matriz_imagen <- perro_01
 
 matriz_concatenada_rojo <- comp_concatenada_filas(perro_01[,,1])
@@ -733,28 +726,28 @@ Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo, 
 
 Imagen comprimida usando el primer filtro:
 
-```{r 3_1_2_ejemplo_1, echo=FALSE}
+```{r 3_1_2_ejemplo_1, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec1 / 255)
 ```
 
 Imagen comprimida usando el segundo filtro con `q = 0.5`:
 
-```{r 3_1_2_ejemplo_2, echo=FALSE}
+```{r 3_1_2_ejemplo_2, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec21 / 255)
 ```
 
 Imagen comprimida usando el segundo filtro con `q = 0.7`:
 
-```{r 3_1_2_ejemplo_3, echo=FALSE}
+```{r 3_1_2_ejemplo_3, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec22 / 255)
 ```
 
 Imagen comprimida usando el segundo filtro con `q = 0.9`:
 
-```{r 3_1_2_ejemplo_4, echo=FALSE}
+```{r 3_1_2_ejemplo_4, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec23 / 255)
 ```
@@ -763,7 +756,7 @@ grid.raster(imagen_rec23 / 255)
 
 MSE: Error Cuadrático Medio. Media aritmética de los MSEs de los tres canales.
 
-```{r 3_2_1_medidas_de_error_MSE, echo=TRUE}
+```{r 3_2_1_medidas_de_error_MSE, echo=TRUE, out.width="50%"}
 mse_imags <- function(imag1, imag2, bn = FALSE) {
   if (bn) {
     return(mean((imag1 - imag2)^2))
@@ -799,7 +792,8 @@ La siguiente función (`calc_errores`) calcula los errores MSE y MAE, y el PSNR 
 
 ```{r 3_2_1_medidas_de_error_calcular_errores, echo=TRUE}
 calc_errores <- function(imag1, imag2, bn = FALSE) {
-  return(c("MSE" = mse_imags(imag1, imag2, bn), "MAE" = mae_imags(imag1, imag2, bn), "PSNR" = psnr_imags(imag1, imag2, bn)))
+  return(c("MSE" = mse_imags(imag1, imag2, bn), "MAE" = 
+             mae_imags(imag1, imag2, bn), "PSNR" = psnr_imags(imag1, imag2, bn)))
 }
 ```
 
@@ -879,28 +873,28 @@ Asimismo, procedemos a mostrar la imagen comprimida con el filtro de paso bajo, 
 
 Imagen comprimida usando el primer filtro:
 
-```{r 3_3_5_ejemplo_bn_1, echo=FALSE}
+```{r 3_3_5_ejemplo_bn_1, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec1 / 255)
 ```
 
 Imagen comprimida usando el segundo filtro con `q = 0.5`:
 
-```{r 3_3_5_ejemplo_bn_2, echo=FALSE}
+```{r 3_3_5_ejemplo_bn_2, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec21 / 255)
 ```
 
 Imagen comprimida usando el segundo filtro con `q = 0.7`:
 
-```{r 3_3_5_ejemplo_bn_3, echo=FALSE}
+```{r 3_3_5_ejemplo_bn_3, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec22 / 255)
 ```
 
 Imagen comprimida usando el segundo filtro con `q = 0.9`:
 
-```{r 3_3_5_ejemplo_bn_4, echo=FALSE}
+```{r 3_3_5_ejemplo_bn_4, echo=FALSE, out.width="50%"}
 grid.newpage()
 grid.raster(imagen_rec23 / 255)
 ```
@@ -1010,7 +1004,7 @@ for (i in video_files){
 ```
 Como resultado se observa los fotogramas extraídos en dos vídeos diferentes. Para el primer vídeo de 13 segundos, se extraen un total de 13 fotogramas con un parámetro de 1 asignado a fps. Para el segundo, se observa un total de 8 fotogramas extraídos para una duración de 8 segundos.
 
-```{r 5_1_3_1_visualizacion_fotogramas_extraidos, echo=TRUE}
+```{r 5_1_3_1_visualizacion_fotogramas_extraidos, echo=TRUE, out.width="50%"}
 # Visualizar fotogramas extraídos para un video específico
 
   grobs <- lapply(videoframes_list[[1]], grid::rasterGrob)
@@ -1156,7 +1150,8 @@ aplic_dwt2d_video <- function(video_frames, bn, wf, nivel){
 aplic_dwt_concat_video <- function(video_frames, bn, filtro, nivel){
   dwt_frames <- c()
   for (i in 1:length(video_frames)){
-    dwt_frames <- c(dwt_frames, list( aplicar_dwt_vector( imag = video_frames[[i]] ,bn=bn,filtro,nivel=nivel)) )
+    dwt_frames <- c(dwt_frames, 
+                    list( aplicar_dwt_vector( imag = video_frames[[i]] ,bn=bn,filtro,nivel=nivel)) )
   }
   return(dwt_frames)
 }
@@ -1165,8 +1160,10 @@ dwt2d_videos <- c()
 dwt_concat_videos<- c()
 
 for (i in 1:length(normalized_matrices_list)){  #Iteramos sobre cada video
-    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( normalized_matrices_list[[i]], bn=FALSE, wf = "haar", nivel=2) ) )
-    dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( normalized_matrices_list[[i]], bn=FALSE, filtro = "haar", nivel=2) ) )
+    dwt2d_videos<- c(dwt2d_videos, list( aplic_dwt2d_video( 
+        normalized_matrices_list[[i]], bn=FALSE, wf = "haar", nivel=2) ) )
+    dwt_concat_videos<- c(dwt_concat_videos, list( aplic_dwt_concat_video( 
+        normalized_matrices_list[[i]], bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
 
@@ -1195,10 +1192,13 @@ for (j in 1:length(normalized_matrices_list)){  #Iteramos sobre cada video
     
     aux_trans <-  list( normalized_matrices_list[[j]][[1]] )
     for (i in 1:(length(videoframes_list[[j]]) -1 )){
-      aux_trans <- c( aux_trans , list( normalized_matrices_list[[j]][[i+1]] - normalized_matrices_list[[j]][[i]] )  )
+      aux_trans <- c( aux_trans , list( normalized_matrices_list[[j]][[i+1]] -
+                                          normalized_matrices_list[[j]][[i]] )  )
     }
-    dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( aplic_dwt2d_video( aux_trans, bn=FALSE, wf = "haar", nivel=2) ) )
-    dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
+    dwt_trans_2d_videos<- c(dwt_trans_2d_videos, list( 
+        aplic_dwt2d_video( aux_trans, bn=FALSE, wf = "haar", nivel=2) ) )
+    dwt_trans_concat_videos<- c(dwt_trans_concat_videos, list( 
+        aplic_dwt_concat_video( aux_trans, bn=FALSE, filtro = "haar", nivel=2) ) )
 }
 ```
 
@@ -1277,19 +1277,22 @@ rec_vid <- function(video_frames_wavelet_compressed, trans = FALSE){
       frame_r <- idwt.2d(video_frames_wavelet_compressed[[i]][[1]])
       frame_g <- idwt.2d(video_frames_wavelet_compressed[[i]][[2]])
       frame_b <- idwt.2d(video_frames_wavelet_compressed[[i]][[3]])
-      video_frames <- c(video_frames, list(array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+      video_frames <- c(video_frames, list(
+        array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
     }
   } else {
     frame_inicial_r <- idwt.2d(video_frames_wavelet_compressed[[1]][[1]])
     frame_inicial_g <- idwt.2d(video_frames_wavelet_compressed[[1]][[2]])
     frame_inicial_b <- idwt.2d(video_frames_wavelet_compressed[[1]][[3]])
-    frame_inicial <- array(c(frame_inicial_r, frame_inicial_g, frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
+    frame_inicial <- array(c(frame_inicial_r, frame_inicial_g,
+                             frame_inicial_b), dim = c(dim(frame_inicial_r), 3))
     video_frames <- list(frame_inicial)
     for (i in 2:length(video_frames_wavelet_compressed)){
       frame_r <- idwt.2d(video_frames_wavelet_compressed[[i]][[1]])
       frame_g <- idwt.2d(video_frames_wavelet_compressed[[i]][[2]])
       frame_b <- idwt.2d(video_frames_wavelet_compressed[[i]][[3]])
-      video_frames <- c(video_frames, list(video_frames[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
+      video_frames <- c(video_frames, list(
+        video_frames[[i-1]] + array(c(frame_r, frame_g, frame_b), dim = c(dim(frame_r), 3))))
     }
   }
   return(video_frames)
@@ -1431,7 +1434,8 @@ lista <- split_frames(concatenated_frames, rows , cols )
 Vamos a construir el algoritmo de compresión propiamente dicho (las funciones concatenate_frames y split_frames son una la inversa de la otra y aglomeran o separan los fotogramas según se ha explicado anteriormente):
 
 ```{r comprimir_video_frames_concatenados}
-compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nivel=2 ){ #Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
+compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nivel=2 ){ 
+#Frames debe ser una lista con cada elemento un fotograma en formato Matriz cuadrada RGB 
   
   N <- nrow( frames[[1]] )
   M <- ncol( frames[[1]] )
@@ -1447,15 +1451,21 @@ compress_video_concat_frames <- function( frames , filtroQ = FALSE, q = -1, nive
   
   #Calculamos de dos maneras distintas la dwt
   
-  dwt2d_frames_concat   <- aplic_dwt(concatenated_frames, bn = bn, wf= "haar", nivel=nivel) #dwt.2d 
+  dwt2d_frames_concat   <- aplic_dwt(concatenated_frames,
+                                     bn = bn, wf= "haar", nivel=nivel) #dwt.2d 
   
-  concat_frames_comprimida_2d   <- filtrar_dwt(dwt2d_frames_concat, bn = bn, filtroQ = filtroQ, q = q)
+  concat_frames_comprimida_2d   <- filtrar_dwt(dwt2d_frames_concat
+                                               , bn = bn, filtroQ = filtroQ, q = q)
   
-  concat_frames_reconstruida2d <- reconstruir_imag(concat_frames_comprimida_2d, bn=FALSE, dim= dim(concatenated_frames))
-  concat_frames_concat_filas_1d   <- comp_concatenada_filas_RGB(concatenated_frames, filtro = "haar", niveles=nivel)
+  concat_frames_reconstruida2d <- reconstruir_imag(
+      concat_frames_comprimida_2d, bn=FALSE, dim= dim(concatenated_frames))
+  concat_frames_concat_filas_1d   <- comp_concatenada_filas_RGB(
+      concatenated_frames, filtro = "haar", niveles=nivel)
   
-  splitted_frames_comp2d <- split_frames(concat_frames_reconstruida2d, frame_height= N, frame_width= M)
-  splitted_frames_concat_filas_1d <- split_frames(concat_frames_concat_filas_1d, frame_height= N, frame_width= M)
+  splitted_frames_comp2d <- split_frames(
+      concat_frames_reconstruida2d, frame_height= N, frame_width= M)
+  splitted_frames_concat_filas_1d <- split_frames(
+      concat_frames_concat_filas_1d, frame_height= N, frame_width= M)
   
   return( list( splitted_frames_comp2d , splitted_frames_concat_filas_1d) )
 }
@@ -1488,7 +1498,7 @@ Sin embargo, dado que estamos utilizando métodos transicionales de compresión,
 
 Así pues, nuestra medición del error tendrá dos partes, una donde se calculara la diferencia general entre el vídeo original y el comprimido, y otra donde se vea el error presente en el último fotograma.
 
-```{r 6_b_funcion_medición_error, echo=TRUE}
+```{r 6_b_funcion_medición_error, echo=FALSE}
 mse_vid <- function(vid1, vid2) {
   error <- 0
   for (i in 1:length(vid1)) {
@@ -1500,11 +1510,13 @@ mse_vid <- function(vid1, vid2) {
 
 error_compresion <- function(vid1, vid2) {
   cat("El error cuadrático entre los dos videos es",mse_vid(vid1, vid2),"\n")
-  cat("El error cuadrático en el último fotograma es",mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE),"\n")
+  cat("El error cuadrático en el último fotograma es",mse_imags(
+      vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE),"\n")
 }
 
 error_compresion_silent <- function(vid1, vid2) {
-  return( list(MSE_vid = mse_vid(vid1, vid2), MSE_last= mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE)))
+  return( list(MSE_vid = mse_vid(vid1, vid2), MSE_last= mse_imags(
+      vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE)))
 }
 ```
 
