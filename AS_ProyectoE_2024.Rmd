@@ -620,7 +620,7 @@ identical(matriz_filas_colores, matriz_concatenada_colores)
 
 ### a. Generar algoritmos de reconstrucción de imagen a partir de los coeficientes wavelets.
 
-La siguiente función (`filtro2d_paso_bajo`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejando todos los coeficientes de estas componentes en cero para reducir la información.
+La siguiente función (`filtro2d_paso_bajo`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D. Esta función elimina las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejando todos los coeficientes de estas componentes en cero para reducir la información. Notamos que este filtro elimina el $75$% de los coeficientes de la transformada wavelet.
 
 ```{r 3_2_filtro_paso_bajo_2D_1, echo = TRUE}
 filtro2d_paso_bajo <- function(dwt2d_imag) {
@@ -634,13 +634,13 @@ filtro2d_paso_bajo <- function(dwt2d_imag) {
 }
 ```
 
-La siguiente función (`filtro2d_paso_bajo2`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D ajustado por un umbral. Esta función elimina los coeficientes de las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolos en cero, si son menores que el umbral `q` (que es el cuantil elegido de los coeficientes, en valor absoluto, de la subbanda de la imagen respectiva) para reducir la información.
+La siguiente función (`filtro2d_paso_bajo2`) realiza un filtro de paso bajo sobre los coeficientes de la transformada wavelet discreta en 2D ajustado por un umbral. Esta función elimina los coeficientes de las componentes de alta frecuencia (LH1, HL1, HH1) de la imagen, dejándolos en cero, si son menores o iguales que el umbral `q` (que es el cuantil elegido de los coeficientes, en valor absoluto, de la subbanda de la imagen respectiva) para reducir la información. Notamos que este filtro elimina el ($q*75$)% de los coeficientes de la transformada wavelet. La función anterior es el caso particular $q = 1$ de esta función.
 
 ```{r 3_2_filtro_paso_bajo_2D_2, echo = TRUE}
 filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
-  dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) < quantile(abs(dwt2d_imag$LH1), q), 0, dwt2d_imag$LH1)
-  dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) < quantile(abs(dwt2d_imag$HL1), q), 0, dwt2d_imag$HL1)
-  dwt2d_imag$HH1 <- ifelse(abs(dwt2d_imag$HH1) < quantile(abs(dwt2d_imag$HH1), q), 0, dwt2d_imag$HH1)
+  dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) <= quantile(abs(dwt2d_imag$LH1), q), 0, dwt2d_imag$LH1)
+  dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) <= quantile(abs(dwt2d_imag$HL1), q), 0, dwt2d_imag$HL1)
+  dwt2d_imag$HH1 <- ifelse(abs(dwt2d_imag$HH1) <= quantile(abs(dwt2d_imag$HH1), q), 0, dwt2d_imag$HH1)
   
   return(dwt2d_imag)
 }
@@ -695,7 +695,6 @@ La función `reconstruir_imag` reconstruye la imagen dada su dimensión, y dada 
 ```{r 3_2_reconstruir_imag, echo = TRUE}
 reconstruir_imag <- function(dwt_imagen, bn, dim) {
   if (bn) {
-    imagen_rec <- array(0, dim = c(dim[1], dim[2]))
     imagen_rec <- idwt.2d(dwt_imagen)
     return(imagen_rec)
   } else {
