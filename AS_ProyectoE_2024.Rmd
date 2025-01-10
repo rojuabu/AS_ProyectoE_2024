@@ -1,14 +1,16 @@
 ---
-title: "AS_ProyectoE_2024"
+title: "Compresión de imágenes y vídeos usando wavelets"
 author:
-  - name: Marcos Rosique
-  - name: Pablo Selma
-  - name: Víctor Mateu Izquierdo
-  - name: Marc Velasco Mateu
-  - name: Carlos Ribes García
-  - name: Rodrigo Juanes
-date: "2024-12-24"
-output: html_document
+  - Marcos Rosique
+  - Pablo Selma
+  - Víctor Mateu Izquierdo
+  - Marc Velasco Mateu
+  - Carlos Ribes García
+  - Rodrigo Juanes
+date: "2024-12-25"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -950,7 +952,7 @@ print(tabla_info2)
 ```
 
 
-# 5. Importación de vídeos y preacondicionamiento
+# 4. Importación de vídeos y preacondicionamiento
 
 Para esta nueva sección se prueba a emplear la transformada wavelet a vídeos. En general, un vídeo se compone de una sucesión de fotogramas (imágenes) que se reproducen a una velocidad determinada. Por ello, simplemente implica realizar el trabajo realizado en los apartados anteriores para cada fotograma del vídeo.
 
@@ -1139,7 +1141,7 @@ Esta última función (`visualizar_imagen_RGB`) se encarga de dar una última co
 
 Con esta última finalización se termina el proceso de carga y preacondicionado de los vídeos. Se ha conseguido extraer los fotogramas de los vídeos, transformarlos en matrices RGB y reescalar las matrices a una cuadrada para poder aplicar la función wavelet en los posteriores apartados.
 
-# 6. Aplicación de Transformadas wavelet:
+# 5. Aplicación de Transformadas wavelet:
 
 ```{r 5_1_1_transformada_wavelet_2d_por_fotograma }
 
@@ -1207,7 +1209,7 @@ Ahora las variables dwt_trans_2d_videos y dwt_trans_concat_videos guardan:
     - Si j=1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del fotograma 1
     - Si j>1: La transformada wavelet del canal R [[1]], G [[2]] o B [[3]] del vector transición del fotograma j-1 al j
 
-# 7. Algoritmos de compresión:
+# 6. Algoritmos de compresión:
 
 Con los coeficientes wavelets obtenidos, seríamos capaces de reconstruir los vídeo originales. Sin embargo, también podemos modificar dichos coeficientes aplicando filtros y transformaciones para reducir la información que contienen sin alterar mucho la integridad del vídeo. De esta manera, habremos comprimido el vídeo.
 
