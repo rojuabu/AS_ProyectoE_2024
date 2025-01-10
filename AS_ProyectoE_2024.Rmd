@@ -15,7 +15,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, include=FALSE}
 library(magick)
 library(wavelets)
 library(waveslim)
@@ -29,7 +29,9 @@ library(av)
 
 ### a. Importación de imágenes, transformación a matrices RGB y normalización de tamaños.
 
-En primer lugar se importan las imágenes a analizar para posteriormente hacer un redimensionamiento de estas a imágenes con dimensiones que son potencia de 2, ya que, la transformada Wavelet descompone las componentes en estas potencias.
+Las transformadas wavelet han emergido como una herramienta poderosa en el análisis y procesamiento de imágenes, gracias a su capacidad para representar información en diferentes escalas y resoluciones. A diferencia de las transformadas tradicionales, como la de Fourier, las wavelets permiten descomponer una imagen en componentes de frecuencia y localización espacial, proporcionando una representación jerárquica y altamente eficiente.
+
+Para ello, se importan las imágenes a analizar mediante la siguiente función para posteriormente hacer un redimensionamiento de estas a imágenes con dimensiones que son potencia de 2, ya que, la transformada Wavelet descompone las componentes en estas potencias.
 
 Por otro lado, las transformamos en arrays que contienen los distintos canales RGB y para aquellas fotos con filtro blanco y negro extraemos solo un canal, puesto que todos son iguales.
 ```{r 1_1_1_funcion_procesar_imagen, echo=TRUE}
@@ -42,7 +44,7 @@ procesar_imagen <- function(ruta_imagen, tamano) {
 }
 ```
 
-```{r 1_1_2_procesar_imagenes, echo=FALSE}
+```{r 1_1_2_procesar_imagenes, echo=TRUE}
 # Aplicar la función a cada imagen
 arbol_01 <- procesar_imagen("./images/arbol_01.jpg", "1024x1024!")
 arbol_03 <- procesar_imagen("./images/arbol_03.jpg", "1024x1024!")
@@ -65,8 +67,8 @@ peluche_01_filtro <- peluche_01_filtro[, , 1]
 gato_02_filtro <- gato_02_filtro[, , 1]
 ```
 
-```{r 1_1_3_ejemplo_array_a_imagen, echo=TRUE}
-# EJEMPLO DE COMO CONVERTIR DE ARRAY A IMAGEN
+Este sería un ejemplo de como convertir de array a imagen:
+```{r 1_1_3_ejemplo_array_a_imagen, echo=TRUE, warning=FALSE}
 # Crear un objeto raster de la imagen
 imagen_raster <- brick(gato_01)
 
@@ -81,11 +83,14 @@ Las wavelets son funciones matemáticas que permiten descomponer una señal en s
 
 Para el caso de una imagen, la transformada wavelet descompone la imagen en diferentes niveles de detalle y frecuencias espaciales, dividiendo la imagen en coeficientes de baja frecuencia (aproximación) y alta frecuencia (detalle) en direcciones horizontal, vertical y diagonal. Esto permite analizar características específicas como bordes, texturas y estructuras a distintas resoluciones, facilitando aplicaciones como la compresión, eliminación de ruido y detección de bordes en imágenes.
 
+## 2.1. Funciones de transformada wavelet
 
-#### Transformada en una dimensión aplicada por filas de la matriz
+### a. Transformada en una dimensión aplicada por filas y columnas de la matriz
 
-Para cada canal, se aplica la transformada wavelet unidimensional a cada fila de su matriz de píxeles. En el caso de las imágenes en blanco y negro esta transformada se aplica sobre su matriz general, pues poseen solo un canal.
-```{r 1_2_1_wavelet_1d_por_filas, echo=FALSE}
+En la primera función se aplica para cada canal la transformada wavelet unidimensional a cada fila de su matriz de píxeles. En el caso de las imágenes en blanco y negro esta transformada se aplica sobre su matriz general, pues poseen solo un canal.
+
+La segunda función es lo mismo pero por columnas de la matriz.
+```{r 1_2_1_wavelet_1d_por_filas, echo=TRUE}
 # Función para aplicar wavelet a cada fila de una matriz de canales
 aplicar_dwt_filas <- function(matriz, filtro_wavelet = "haar") {
   lapply(1:nrow(matriz), function(i) wavelets::dwt(as.numeric(matriz[i, ]), filter = filtro_wavelet, n.levels=2))
@@ -100,8 +105,6 @@ extraccion_wavelet_filas <- function(array_imagen, filtro_wavelet = "haar") {
   return(list(wavelet_filas_R = wavelet_filas_R, wavelet_filas_G = wavelet_filas_G, wavelet_filas_B = wavelet_filas_B))
 }
 
-# Aplicar la función a la imagen
-dwt_matriz_arbol_01 <- extraccion_wavelet_filas(arbol_01)
 
 
 # Función para aplicar wavelet a cada columna de una matriz de canales
@@ -119,11 +122,9 @@ extraccion_wavelet_columnas <- function(array_imagen, filtro_wavelet = "haar") {
 ```
 
 
-#### Transformada en una dimensión aplicada al vector que concatena todas las filas de la matriz
+### b. Transformada en una dimensión aplicada al vector que concatena todas las filas de la matriz
 
-Las matrices RGB se convierten en vectores numéricos para posteriormente concatenarlos y hacer aplicar la DWT unidimensional.
-
-
+Las matrices RGB se convierten en vectores numéricos para posteriormente concatenarlos y aplicar la DWT unidimensional a cada vector de color.
 
 ```{r 1_2_2_wavelet_1d_concatenado, echo=TRUE}
 # Función para aplicar DWT en una dimensión a una imagen
@@ -145,15 +146,26 @@ aplicar_dwt_vector <- function(imagen, bn = FALSE, filtro_wavelet = "haar", nive
 
 ```
 
-```{r}
+```{r, include=FALSE}
 # Aplicar la función a la imagen
 dwt_vector_arbol_01 <- aplicar_dwt_vector(arbol_01)
 ```
 
 
-#### Transformada en dos dimensiones aplicada por canales RGB
+### c. Transformada en dos dimensiones aplicada por canales RGB
 
-Se aplica la transformada wavelet 2D a cada canal de color (R, G, B) de la imagen individualmente. Cada canal se descompone independientemente en sus componentes de frecuencia por lo que puede ser beneficioso si se desea analizar la información de color por separado.
+Para la aplicación de wavelets en dos dimensiones hay que tener en cuenta los siguientes términos:
+
++ LL: Baja frecuencia en la dirección horizontal y en la dirección vertical. Contiene las bajas frecuencias de la imagen, nos da una versión suavizada.
+
++ LH: Baja frecuencia en la dirección horizontal y alta frecuencia en la dirección vertical. Captura detalles finos horizontales (bordes verticales) en la imagen.
+
++ HL: Alta frecuencia en la dirección horizontal y baja frecuencia en la dirección vertical. Captura detalles finos verticales (bordes horizontales) en la imagen.
+
++ HH: Alta frecuencia tanto en la dirección horizontal como en la dirección vertical. Captura detalles finos diagonales en la imagen.
+
+
+La siguiente función aplica la transformada wavelet 2D a cada canal de color (R, G, B) de la imagen individualmente. Cada canal se descompone independientemente en sus componentes de frecuencia por lo que puede ser beneficioso si se desea analizar la información de color por separado.
 
 Por otro lado, a la hora de reconstruir la imagen, cada canal de color (R, G, B) se transforma y se reconstruye de manera independiente, teniendo como consecuencia que las interdependencias entre los canales no se tienen en cuenta durante la transformada.
 
@@ -168,41 +180,29 @@ aplicar_dwt2d_a_matriz <- function(array_imagen, wf = "haar") {
 }
 ```
 
-```{r}
+```{r, include=FALSE}
 # Aplicar la función a la imagen
 dwt2d_RGB_arbol_01<- aplicar_dwt2d_a_matriz(arbol_01)
 ```
 
 
-#### Transformada en dos dimensiones aplicada a una imagen completa
+### d. Transformada en dos dimensiones aplicada a una imagen completa
 
-En este caso la transformada wavelet 2D se aplica directamente a la imagen completa, considerando todos los canales de color conjuntamente. De esta manera puede capturar mejor las correlaciones entre los canales de color.
+En este caso la transformada wavelet 2D se aplica directamente a la imagen completa con la función `dwt.2d`, considerando todos los canales de color conjuntamente. De esta manera puede capturar mejor las correlaciones entre los canales de color.
 
 Se obtiene un único conjunto de coeficientes wavelet que representa toda la imagen, lo que puede ser útil si se está interesado en la estructura general de la imagen en lugar de análisis específicos de color.
 
 Por otra parte, a la hora de reconstruir la imagen todos los canales de color se consideran conjuntamente durante la transformada capturando mejor las correlaciones entre los canales de color RGB.
 
-```{r 1_2_4_wavelet_2d_completa, echo=FALSE}
+```{r 1_2_4_wavelet_2d_completa, include=FALSE}
 # Aplicación a la imagen globalmente
 dwt2d_arbol_01 <- dwt.2d(arbol_01, "haar", J = 2)
-plot.dwt.2d(dwt2d_arbol_01)
 ```
 
-Para la aplicación de wavelets en dos dimensiones hay que tener en cuenta los siguientes términos:
 
-+ LL: Baja frecuencia en la dirección horizontal y en la dirección vertical. Contiene las bajas frecuencias de la imagen, nos da una versión suavizada.
+## 2.2. Ejemplo de transformada wavelet unidimensional
 
-+ LH: Baja frecuencia en la dirección horizontal y alta frecuencia en la dirección vertical. Captura detalles finos horizontales (bordes verticales) en la imagen.
-
-+ HL: Alta frecuencia en la dirección horizontal y baja frecuencia en la dirección vertical. Captura detalles finos verticales (bordes horizontales) en la imagen.
-
-+ HH: Alta frecuencia tanto en la dirección horizontal como en la dirección vertical. Captura detalles finos diagonales en la imagen.
-
-
---
-
-
-También podemos realizar las transformadas wavelet 2D únicamente mediante la función `dwt`. Definiendo filtros de paso bajo y alto para filas y columnas y combinándolos.
+Aplicando algunas de las funciones unidimensionales anteriormente mencionadas podemos realizar las transformadas wavelet 2D definiendo filtros de paso bajo y alto para filas y columnas y combinándolos.
 Realizaremos la demostración sobre una imagen en blanco y negro para tener que ocuparnos de una sola matriz (grises), en vez de tres (rojo, verde, azul) como sucedería con una imagen a color. Sin embargo, notamos que el siguiente método también se puede aplicar análogamente a imágenes a color.
 
 
@@ -222,9 +222,9 @@ extraccion_dwt_columnas_byn <- function(array_imagen, filtro_wavelet = "haar") {
 }
 ```
 
-Definimos nuestras funciones de filtro de paso alto y filtro de paso bajo:
 
 ```{r 1_2_5_dwt2d_casera_2, echo=FALSE}
+# Definimos funcion de filtro de paso bajo
 filtro_filas_paso_bajo <- function(copia, copia_2){
   
   # Obtenemos las dimensiones de los Detalles de la transformada wavelet
@@ -265,6 +265,7 @@ filtro_columnas_paso_bajo <- function(copia, copia_2){
 
 
 ```{r 1_2_5_dwt2d_casera_4, echo=FALSE}
+# Definimos funcion de filtro de paso alto
 filtro_filas_paso_alto <- function(copia, copia_2){
 
   # En este filtro y en el siguiente, en vez de anular los Detalles, anularemos las Aproximaciones
@@ -303,8 +304,8 @@ filtro_columnas_paso_alto <- function(copia, copia_2){
 ```
 
 
-Obtenemos los detalles horizontales de la imagen, LH. Básicamente, aplicamos un filtro de paso bajo a las filas y un filtro de paso alto a las columnas.
 ```{r 1_2_5_dwt2d_casera_6, echo=FALSE}
+# Obtenemos los detalles horizontales de la imagen, LH. Básicamente, aplicamos un filtro de paso bajo a las filas y un filtro de paso alto a las columnas
 LH_detalles_horizontales <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -332,8 +333,8 @@ copia_LH <- (copia_LH - min(copia_LH))/(max(copia_LH) - min(copia_LH)) # Se norm
 # Nota: A la función grid.raster() se le asigna una matriz y te genera una imagen. Si la la profundidad de la matriz es 1 (es decir sólo tiene filas y columnas) interpreta que la imagen está en tonos de grises; si su profundidad es 3, interpreta que la imagen está en RGB asignando a cada profundidad tonos de rojo, verde y azul, respectivamente.
 ```
 
-Obtenemos los detalles verticales de la imagen, HL. Realizamos un filtro de paso alto a las filas y un filtro de paso bajo a las columnas.
 ```{r 1_2_5_dwt2d_casera_8, echo=FALSE}
+#Obtenemos los detalles verticales de la imagen, HL. Realizamos un filtro de paso alto a las filas y un filtro de paso bajo a las columnas
 HL_detalles_verticales <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -357,8 +358,9 @@ copia_HL <- (copia_HL - min(copia_HL))/(max(copia_HL) - min(copia_HL)) # Se norm
 #grid.raster(copia_HL)
 ```
 
-Obtenemos la imagen suavizada, LL. Aplicamos un filtro de paso bajo a las filas y un fitro de paso bajo a las columnas.
+
 ```{r 1_2_5_dwt2d_casera_10, echo=FALSE}
+# Obtenemos la imagen suavizada, LL. Aplicamos un filtro de paso bajo a las filas y un fitro de paso bajo a las columnas
 LL_suavizado <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -382,10 +384,8 @@ copia_LL <- LL_suavizado(flor_05_filtro)
 ```
 
 
-
-
-Obtenemos los detalles diagonales, HH. Realizamos un filtro de paso alto tanto a las filas como a las columnas.
 ```{r 1_2_5_dwt2d_casera_12, echo=FALSE}
+# Obtenemos los detalles diagonales, HH. Realizamos un filtro de paso alto tanto a las filas como a las columnas.
 HH_detalles_diagonales <- function(matriz_imagen){
   copia <- extraccion_dwt_filas_byn(matriz_imagen)
   matriz_ceros <- matrix(0, nrow=dim(matriz_imagen)[1], ncol=dim(matriz_imagen)[2])
@@ -411,7 +411,6 @@ copia_HH <- (copia_HH - min(copia_HH))/(max(copia_HH) - min(copia_HH)) # Se norm
 
 
 ```{r 1_2_6_plot_dwt_2d_casero, echo = FALSE}
-
 # Función para fusionar 4 matrices n x n en una matriz 2n x 2n y representarla
 fusionar_y_mostrar_imagenes <- function(imagen1, imagen2, imagen3, imagen4) {
   # Verificar que las imágenes tengan dimensiones compatibles
@@ -445,6 +444,7 @@ fusionar_y_mostrar_imagenes(copia_HL, copia_HH, copia_LL/256, copia_LH)
 
 ```
 
+La imagen anterior muestra la descomposición de una imagen de una flor mediante una Transformada Wavelet Discreta (DWT), la cual divide la información en cuatro subbandas que representan diferentes características de la imagen. La subbanda LL (Low-Low) contiene las componentes de baja frecuencia tanto en dirección horizontal como vertical, lo que permite capturar la mayor parte de la estructura y los patrones principales de la imagen, mientras que las subbandas HL (High-Low) y LH (Low-High) resaltan, respectivamente, los detalles y bordes predominantes en las direcciones horizontal y vertical. Por otro lado, la subbanda HH (High-High) incluye las componentes de alta frecuencia en ambas direcciones, lo cual permite destacar los detalles más finos y, en algunos casos, elementos de ruido. En conjunto, esta descomposición resulta especialmente útil para tareas de procesamiento de imágenes, ya que facilita el análisis, la compresión o la mejora de características específicas en cada subbanda.
 
 # 3. Algoritmos de compresión
 
@@ -1308,22 +1308,38 @@ rec_vid <- function(video_frames_wavelet_compressed, trans = FALSE){
 }
 ```
 
-```{r 6_a_reconstruccion, echo=FALSE}
-video_base <- rec_vid(dwt2d_videos[[1]], trans = FALSE)
+```{r 6_a_compresion_y_reconstruccion, echo=FALSE}
+estatico_base <- rec_vid(dwt2d_videos[[1]], trans = FALSE)
 
-video_base_trans <- rec_vid(dwt_trans_2d_videos[[1]], trans = TRUE)
+estatico_base_trans <- rec_vid(dwt_trans_2d_videos[[1]], trans = TRUE)
 
-wavelet_comprimido_paso_bajo <- comp_vid_paso_bajo(dwt2d_videos[[1]])
-video_paso_bajo <- rec_vid(wavelet_comprimido_paso_bajo, trans = FALSE)
+estatico_wavelet_comprimido_paso_bajo <- comp_vid_paso_bajo(dwt2d_videos[[1]])
+estatico_paso_bajo <- rec_vid(estatico_wavelet_comprimido_paso_bajo, trans = FALSE)
 
-wavelet_comprimido_paso_bajo_trans <- comp_vid_paso_bajo(dwt_trans_2d_videos[[1]])
-video_paso_bajo_trans <- rec_vid(wavelet_comprimido_paso_bajo_trans, trans = TRUE)
+estatico_wavelet_comprimido_paso_bajo_trans <- comp_vid_paso_bajo(dwt_trans_2d_videos[[1]])
+estatico_paso_bajo_trans <- rec_vid(estatico_wavelet_comprimido_paso_bajo_trans, trans = TRUE)
 
-wavelet_comprimido_paso_bajo2 <- comp_vid_paso_bajo2(dwt2d_videos[[1]], q = 0.5)
-video_paso_bajo2 <- rec_vid(wavelet_comprimido_paso_bajo2, trans = FALSE)
+estatico_wavelet_comprimido_paso_bajo2 <- comp_vid_paso_bajo2(dwt2d_videos[[1]], q = 0.5)
+estatico_paso_bajo2 <- rec_vid(estatico_wavelet_comprimido_paso_bajo2, trans = FALSE)
 
-wavelet_comprimido_paso_bajo2_trans <- comp_vid_paso_bajo2(dwt_trans_2d_videos[[1]], q = 0.5)
-video_paso_bajo2_trans <- rec_vid(wavelet_comprimido_paso_bajo2_trans, trans = TRUE)
+estatico_wavelet_comprimido_paso_bajo2_trans <- comp_vid_paso_bajo2(dwt_trans_2d_videos[[1]], q = 0.5)
+estatico_paso_bajo2_trans <- rec_vid(estatico_wavelet_comprimido_paso_bajo2_trans, trans = TRUE)
+
+giro_base <- rec_vid(dwt2d_videos[[2]], trans = FALSE)
+
+giro_base_trans <- rec_vid(dwt_trans_2d_videos[[2]], trans = TRUE)
+
+giro_wavelet_comprimido_paso_bajo <- comp_vid_paso_bajo(dwt2d_videos[[2]])
+giro_paso_bajo <- rec_vid(giro_wavelet_comprimido_paso_bajo, trans = FALSE)
+
+giro_wavelet_comprimido_paso_bajo_trans <- comp_vid_paso_bajo(dwt_trans_2d_videos[[2]])
+giro_paso_bajo_trans <- rec_vid(giro_wavelet_comprimido_paso_bajo_trans, trans = TRUE)
+
+giro_wavelet_comprimido_paso_bajo2 <- comp_vid_paso_bajo2(dwt2d_videos[[2]], q = 0.5)
+giro_paso_bajo2 <- rec_vid(giro_wavelet_comprimido_paso_bajo2, trans = FALSE)
+
+giro_wavelet_comprimido_paso_bajo2_trans <- comp_vid_paso_bajo2(dwt_trans_2d_videos[[2]], q = 0.5)
+giro_paso_bajo2_trans <- rec_vid(giro_wavelet_comprimido_paso_bajo2_trans, trans = TRUE)
 ```
 
 Adicionalmente, aplicaremos un método "análogo" al que hemos visto anteriormente en una dimensión cuando concatenábamos las señales fila o columna de una matriz. Esta vez organizaremos los fotogramas en una cuadrícula suficientemente grande y calcularemos la transformada wavelet a esta imagen resultante, para posteriormente aplicar los filtros apropiados que nos darán la compresión de esta imagen. Una vez hecho esto podremos recuperar los fotogramas a partir de la imagen para recomponer el vídeo.
@@ -1477,17 +1493,17 @@ comprimido_concat_1d <- comprimido[[2]]  #Comprime la cuadrícula de fotogrames 
 
 ### b. Medición del error entre el video original y el comprimido.
 
-La manera más clara de medir el error entre un vídeo y su compresión, consiste en calcular el vídeo diferencia entre ambos, sumar todos los valores de todos los fotogramas con valor absoluto, y normalizar dependiendo de la resolución y el número de fotogramas.
+La manera más clara de medir el error entre un vídeo y su compresión consiste en calcular el error entre los fotogramas del vídeo y normalizar dependiendo del número de fotogramas.
 
 Sin embargo, dado que estamos utilizando métodos transicionales de compresión, es posible que el error se vaya acumulando de un fotograma a otro, resultando en un mayor error en el último fotograma.
 
 Así pues, nuestra medición del error tendrá dos partes, una donde se calculara la diferencia general entre el vídeo original y el comprimido, y otra donde se vea el error presente en el último fotograma.
 
-```{r 6_b_funcion_medición_error, echo=FALSE}
+```{r 6_b_funcion_medición_error, echo=TRUE}
 mse_vid <- function(vid1, vid2) {
   error <- 0
   for (i in 1:length(vid1)) {
-    error <- error + sqrt(mse_imags(vid1[[i]], vid2[[i]], bn = FALSE))
+    error <- error + mse_imags(vid1[[i]], vid2[[i]], bn = FALSE)
   }
   error <- error/(length(vid1))
   return(error)
@@ -1495,41 +1511,111 @@ mse_vid <- function(vid1, vid2) {
 
 error_compresion <- function(vid1, vid2) {
   cat("El error cuadrático entre los dos videos es",mse_vid(vid1, vid2),"\n")
-  cat("El error cuadrático en el último fotograma es",sqrt(mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE)),"\n")
+  cat("El error cuadrático en el último fotograma es",mse_imags(vid1[[length(vid1)]], vid2[[length(vid1)]], bn = FALSE),"\n")
 }
 ```
 
-Veamos ahora el error que se obtiene al aplicar cada método de compresión.
+Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "estatico".
 
-```{r 6_b_comparacion_errores, echo=FALSE}
-print("Método: Fotograma a fotograma sin compresión.")
-error_compresion(normalized_matrices_list[[1]],video_base)
-print("Método: Matrices transicionales sin compresión.")
-error_compresion(normalized_matrices_list[[1]],video_base_trans)
-print("Método: Fotograma a fotograma con filtro de paso bajo.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo)
-print("Método: Matrices transicionales con filtro de paso bajo.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo_trans)
-print("Método: Fotograma a fotograma con filtro de paso bajo 2.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo_2)
-print("Método: Matrices transicionales con filtro de paso bajo 2.")
-error_compresion(normalized_matrices_list[[1]],video_paso_bajo_2_trans)
-print("Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.")
+```{r 6_b_comparacion_errores_estatico, echo=FALSE}
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_base)
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_base_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+error_compresion(normalized_matrices_list[[1]],estatico_paso_bajo2_trans)
+cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt.2d de paso bajo 2.","\n")
 error_compresion(normalized_matrices_list[[1]],comprimido_concat_2d)
-print("Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado")
+cat("\n","Método: Cuadrícula de los fotogramas con filtro con dwt 1d al vector concatenado","\n")
 error_compresion(normalized_matrices_list[[1]],comprimido_concat_1d)
 ```
 
-### c. Analizar y ordenar algoritmos en base a la relación calidad/nivel de compresión.
+Todos los métodos tienen un error relativamente bajo, que indica que los métodos de compresión son capaces de mantener la fidelidad del video original.
+
+Veamos ahora el error que se obtiene al aplicar cada método de compresión en el vídeo "giro".
+
+```{r 6_b_comparacion_errores_giro, echo=FALSE}
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_base)
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_base_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo_trans)
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2)
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+error_compresion(normalized_matrices_list[[2]],giro_paso_bajo2_trans)
+```
+
+De nuevo, vemos que la compresión no ha afectado gravemente a la fidelidad del vídeo. Además, sorprendentemente, no parece que el método transicional haya afectado mucho a la calidad del último fotograma.
+
+### c. Analizar el nivel de compresión.
+
+Nuestros métodos de compresión funcionaban sustituyendo puntos de las matrices de detalle y aproximación de nuestra transformada wavelet por 0. Así, para medir el grado de compresión de cada método, calcularemos el porcentaje de ceros existentes en nuestros coeficientes wavelet.
+
+La siguiente función tiene este propósito.
 
 ```{r 6_c_medición_compresion, echo=FALSE}
-
+proporcion_ceros <- function(wavelet_comprimido, nivel=2) {
+  zeros <- 0
+  for (i in 1:length(wavelet_comprimido)) {
+    for (j in 1:3){
+      for (k in 1:3*nivel){
+        zeros <- zeros + sum(wavelet_comprimido[[i]][[j]][[k]] == 0)
+      }
+    }
+  }
+  proporcion <- zeros/(((dim(wavelet_comprimido[[1]][[1]][[1]])[1]*2)^2)*length(wavelet_comprimido))
+  return(proporcion)
+}
 ```
+
+A continuación, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo estatico.
 
 ```{r 6_c_comparacion_compresion, echo=FALSE}
-
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[1]])*100,"%")
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt_trans_2d_videos[[1]])*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo_trans)*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(estatico_wavelet_comprimido_paso_bajo2_trans)*100,"%")
 ```
 
+Por comprobar que nuestro código es consisitente, estudiaremos la compresión presente usando nuestros distintos métodos en el vídeo giro.
 
+```{r 6_c_comparacion_compresion, echo=FALSE}
+cat("","Método: Fotograma a fotograma sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt2d_videos[[2]])*100,"%")
+cat("\n","Método: Matrices transicionales sin compresión.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(dwt_trans_2d_videos[[2]])*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo_trans)*100,"%")
+cat("\n","Método: Fotograma a fotograma con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo2)*100,"%")
+cat("\n","Método: Matrices transicionales con filtro de paso bajo 2 al 0.5.","\n")
+cat("","Ratio de compresión:",proporcion_ceros(giro_wavelet_comprimido_paso_bajo2_trans)*100,"%")
+```
+
+Como podemos observar, apenas hay compresión cuando no aplicamos ningún método de compresión, obviamente. El pequeño porcentaje tan solo aparece por la presencia de ceros naturales en los coeficientes.
+
+Por otro lado, el filtro de paso bajo usual aplica una compresión de alrededor de 75%, ya que elimina tres submatrices de detalle de la mitad de la longitud original.
+
+Por último, el filtro de paso bajo aplica una compresión de un 37%, aunque este factor es completamente dependiente de nuestro umbral de compresión aplicado. Podría ser tan bajo como 0%, o tan alto como 75%.
 
 
