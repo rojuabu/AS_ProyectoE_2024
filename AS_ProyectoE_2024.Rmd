@@ -96,7 +96,8 @@ La segunda función es lo mismo pero por columnas de la matriz.
 ```{r 1_2_1_wavelet_1d_por_filas, echo=TRUE}
 # Función para aplicar wavelet a cada fila de una matriz de canales
 aplicar_dwt_filas <- function(matriz, filtro_wavelet = "haar") {
-  lapply(1:nrow(matriz), function(i) wavelets::dwt(as.numeric(matriz[i, ]), filter = filtro_wavelet, n.levels=2))
+  lapply(1:nrow(matriz), function(i) wavelets::dwt(as.numeric(matriz[i, ]), 
+                                                   filter = filtro_wavelet, n.levels=2))
 }
 
 # Función para extraer canales y aplicar wavelet a cada fila
@@ -105,14 +106,16 @@ extraccion_wavelet_filas <- function(array_imagen, filtro_wavelet = "haar") {
   wavelet_filas_G <- aplicar_dwt_filas(array_imagen[, , 2], filtro_wavelet)
   wavelet_filas_B <- aplicar_dwt_filas(array_imagen[, , 3], filtro_wavelet)
   
-  return(list(wavelet_filas_R = wavelet_filas_R, wavelet_filas_G = wavelet_filas_G, wavelet_filas_B = wavelet_filas_B))
+  return(list(wavelet_filas_R = wavelet_filas_R, 
+              wavelet_filas_G = wavelet_filas_G, wavelet_filas_B = wavelet_filas_B))
 }
 
 
 
 # Función para aplicar wavelet a cada columna de una matriz de canales
 aplicar_dwt_columnas <- function(matriz, filtro_wavelet = "haar") {
- lapply(1:ncol(matriz), function(j) wavelets::dwt(as.numeric(matriz[ , j]), filter = filtro_wavelet, n.levels=2))
+ lapply(1:ncol(matriz), function(j) wavelets::dwt(as.numeric(matriz[ , j]), 
+                                                  filter = filtro_wavelet, n.levels=2))
 }
 # Función para extraer canales y aplicar wavelet a cada columna
 extraccion_wavelet_columnas <- function(array_imagen, filtro_wavelet = "haar") {
@@ -120,7 +123,8 @@ extraccion_wavelet_columnas <- function(array_imagen, filtro_wavelet = "haar") {
   wavelet_columnas_G <- aplicar_dwt_columnas(array_imagen[, , 2], filtro_wavelet)
   wavelet_columnas_B <- aplicar_dwt_columnas(array_imagen[, , 3], filtro_wavelet)
   
-  return(list(wavelet_columnas_R = wavelet_columnas_R, wavelet_columnas_G = wavelet_columnas_G, wavelet_columnas_B = wavelet_columnas_B))
+  return(list(wavelet_columnas_R = wavelet_columnas_R,
+              wavelet_columnas_G = wavelet_columnas_G, wavelet_columnas_B = wavelet_columnas_B))
 }
 ```
 
@@ -641,9 +645,12 @@ La siguiente función (`filtro2d_paso_bajo2`) realiza un filtro de paso bajo sob
 
 ```{r 3_2_filtro_paso_bajo_2D_2, echo = TRUE}
 filtro2d_paso_bajo2 <- function(dwt2d_imag, q) {
-  dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) <= quantile(abs(dwt2d_imag$LH1), q), 0, dwt2d_imag$LH1)
-  dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) <= quantile(abs(dwt2d_imag$HL1), q), 0, dwt2d_imag$HL1)
-  dwt2d_imag$HH1 <- ifelse(abs(dwt2d_imag$HH1) <= quantile(abs(dwt2d_imag$HH1), q), 0, dwt2d_imag$HH1)
+  dwt2d_imag$LH1 <- ifelse(abs(dwt2d_imag$LH1) <= quantile(abs(dwt2d_imag$LH1), q),
+                           0, dwt2d_imag$LH1)
+  dwt2d_imag$HL1 <- ifelse(abs(dwt2d_imag$HL1) <= quantile(abs(dwt2d_imag$HL1), q), 
+                           0, dwt2d_imag$HL1)
+  dwt2d_imag$HH1 <- ifelse(abs(dwt2d_imag$HH1) <= quantile(abs(dwt2d_imag$HH1), q), 
+                           0, dwt2d_imag$HH1)
   
   return(dwt2d_imag)
 }
@@ -767,7 +774,8 @@ mse_imags <- function(imag1, imag2, bn = FALSE) {
   if (bn) {
     return(mean((imag1 - imag2)^2))
   } else {
-    return(mean(c(mean((imag1[,,1] - imag2[,,1])^2), mean((imag1[,,2] - imag2[,,2])^2), mean((imag1[,,3] - imag2[,,3])^2))))
+    return(mean(c(mean((imag1[,,1] - imag2[,,1])^2),
+                  mean((imag1[,,2] - imag2[,,2])^2), mean((imag1[,,3] - imag2[,,3])^2))))
   }
 }
 ```
@@ -779,7 +787,8 @@ mae_imags <- function(imag1, imag2, bn = FALSE) {
   if (bn) {
     return(mean(abs(imag1 - imag2)))
   } else {
-    return(mean(c(mean(abs(imag1[,,1] - imag2[,,1])), mean(abs(imag1[,,2] - imag2[,,2])), mean(abs(imag1[,,3] - imag2[,,3])))))
+    return(mean(c(mean(abs(imag1[,,1] - imag2[,,1])),
+                  mean(abs(imag1[,,2] - imag2[,,2])), mean(abs(imag1[,,3] - imag2[,,3])))))
   }
 }
 ```
@@ -1489,10 +1498,15 @@ rotate_frames_90 <- function(frames) {
 ```
 
 ```{r comprimir_video_frames_concatenados_prueba_1, include=FALSE}
-comprimido <- compress_video_concat_frames(normalized_matrices_list[[1]] )
+comprimido_estatico <- compress_video_concat_frames(normalized_matrices_list[[1]] )
+comprimido_giro <- compress_video_concat_frames(normalized_matrices_list[[2]] )
 
-comprimido_concat_2d <- comprimido[[1]]  #Comprime la cuadrícula de fotogramas mediante dwt.2d
-comprimido_concat_1d <- comprimido[[2]]  #Comprime la cuadrícula de fotogrames mediante la dwt 1d al vector que concatena los píxeles
+comprimido_estatico_concat_2d <- comprimido_estatico[[1]]  #Comprime la cuadrícula de fotogramas mediante dwt.2d
+comprimido_estatico_concat_1d <- comprimido_estatico[[2]]  #Comprime la cuadrícula de fotogrames mediante la dwt 1d al vector que concatena los píxeles
+
+comprimido_giro_concat_2d <- comprimido_giro[[1]]  #Comprime la cuadrícula de fotogramas mediante dwt.2d
+comprimido_giro_concat_1d <- comprimido_giro[[2]]
+
 ```
 
 ### b. Medición del error entre el video original y el comprimido.
@@ -1535,8 +1549,8 @@ c("Independiente, filtro", mse_vid(normalized_matrices_list[[1]],estatico_paso_b
 c("Transicional, filtro", mse_vid(normalized_matrices_list[[1]],estatico_paso_bajo_trans), mse_imags(normalized_matrices_list[[1]][[length(normalized_matrices_list[[1]])]], estatico_paso_bajo_trans[[length(estatico_paso_bajo_trans)]], bn = FALSE)),
 c("Independiente, medio filtro", mse_vid(normalized_matrices_list[[1]],estatico_paso_bajo2), mse_imags(normalized_matrices_list[[1]][[length(normalized_matrices_list[[1]])]], estatico_paso_bajo2[[length(estatico_paso_bajo2)]], bn = FALSE)),
 c("Transicional, medio filtro", mse_vid(normalized_matrices_list[[1]],estatico_paso_bajo2_trans), mse_imags(normalized_matrices_list[[1]][[length(normalized_matrices_list[[1]])]], estatico_paso_bajo2_trans[[length(estatico_paso_bajo2_trans)]], bn = FALSE)),
-c("Cuadrícula, dos dimensiones", mse_vid(normalized_matrices_list[[1]],comprimido_concat_2d),"---"),
-c("Cuadrícula, una dimensión", mse_vid(normalized_matrices_list[[1]],comprimido_concat_1d),"---")   ) )
+c("Cuadrícula, dos dimensiones", mse_vid(normalized_matrices_list[[1]],comprimido_estatico_concat_2d),"---"),
+c("Cuadrícula, una dimensión", mse_vid(normalized_matrices_list[[1]],comprimido_estatico_concat_1d),"---")   ) )
 names(comp_errores_estatico)<- c("Método","Error total", "Error final")
 print(comp_errores_estatico)
 ```
@@ -1552,7 +1566,9 @@ c("Transicional, sin compresión" , mse_vid(normalized_matrices_list[[2]], giro_
 c("Independiente, paso bajo", mse_vid(normalized_matrices_list[[2]], giro_paso_bajo), mse_imags(normalized_matrices_list[[2]][[length(normalized_matrices_list[[2]])]], giro_paso_bajo[[length(giro_paso_bajo)]], bn = FALSE)),
 c("Transicional, paso bajo", mse_vid(normalized_matrices_list[[2]],giro_paso_bajo_trans), mse_imags(normalized_matrices_list[[2]][[length(normalized_matrices_list[[2]])]], giro_paso_bajo_trans[[length(giro_paso_bajo_trans)]], bn = FALSE)),
 c("Independiente, medio filtro", mse_vid(normalized_matrices_list[[2]],giro_paso_bajo2), mse_imags(normalized_matrices_list[[2]][[length(normalized_matrices_list[[2]])]], giro_paso_bajo2[[length(giro_paso_bajo2)]], bn = FALSE)),
-c("Transicional, medio filtro", mse_vid(normalized_matrices_list[[2]],giro_paso_bajo2_trans), mse_imags(normalized_matrices_list[[2]][[length(normalized_matrices_list[[2]])]], giro_paso_bajo2_trans[[length(giro_paso_bajo2_trans)]], bn = FALSE))) )
+c("Transicional, medio filtro", mse_vid(normalized_matrices_list[[2]],giro_paso_bajo2_trans), mse_imags(normalized_matrices_list[[2]][[length(normalized_matrices_list[[2]])]], giro_paso_bajo2_trans[[length(giro_paso_bajo2_trans)]], bn = FALSE)),
+c("Cuadrícula, dos dimensiones", mse_vid(normalized_matrices_list[[2]],comprimido_giro_concat_2d),"---"),
+c("Cuadrícula, una dimensión", mse_vid(normalized_matrices_list[[2]],comprimido_giro_concat_1d),"---")) )
 names(comp_errores_estatico)<- c("Método","Error total", "Error final")
 print(comp_errores_estatico)
 ```
@@ -1582,7 +1598,7 @@ A continuación, estudiaremos la compresión presente usando nuestros distintos 
 
 ```{r 6_c_comparacion_compresion_estatico, echo=FALSE}
 prop_ceros <- data.frame( rbind(
-  c("Fotograma a fotograma sin compresión", proporcion_ceros(dwt2d_videos[[1]])*100 ),
+  c("Fotograma a fotograma sin compresión", proporcion_ceros(dwt2d_videos[[1]]) * 100 ),
   c("Matrices transicionales sin compresión", proporcion_ceros(dwt_trans_2d_videos[[1]])*100),
   c("Fotograma a fotograma con filtro de paso bajo", proporcion_ceros(estatico_wavelet_comprimido_paso_bajo)*100),
   c("Matrices transicionales con filtro de paso bajo", proporcion_ceros(estatico_wavelet_comprimido_paso_bajo_trans)*100),
